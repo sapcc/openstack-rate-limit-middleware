@@ -1,0 +1,26 @@
+service: compute
+
+# do not apply rate limits to these projects
+whitelist:
+  - project_id: 1233456789abcdef
+
+# these projects get an immediate rate limit response
+blacklist:
+  - project_id: abcdef1233456789
+
+rates:
+  # global rate limits counted across all projects
+  global:
+    servers:
+      - type: create
+        limit: 50r/m
+      - type: read
+        limit: 1000r/m
+
+  # default local rate limits counted per project
+  defaults:
+    servers:
+      - type: create
+        limit: 5r/m
+      - type: read
+        limit: 10r/m

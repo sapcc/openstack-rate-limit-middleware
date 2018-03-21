@@ -1,0 +1,26 @@
+rates:
+  # global rate limits counted across all projects
+  global:
+    servers:
+      - action: create
+        limit: 100r/m
+      - action: read
+        limit: 100r/5m
+      - action: delete
+        limit: 100r/s
+    flavor:
+      - action: create
+        limit: 150r/m
+
+  # default local rate limits counted per project
+  default:
+    servers:
+      - action: create
+        limit: 1r/m
+      - action: read
+        limit: 2r/5m
+      - action: delete
+        limit: 3r/s
+    flavor:
+      - action: create
+        limit: 4r/m

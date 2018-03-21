@@ -1,0 +1,53 @@
+{
+	"projects": [{
+			"id": "1233456789abcdef1233456789",
+			"services": [{
+				"type": "object-store",
+				"area": "storage",
+				"rates": [{
+						"targetTypeURI": "account/container",
+						"actions": [{
+								"name": "update",
+								"limit": "5r/m",
+								"strategy": "slidingwindowstrategy"
+							},
+							{
+								"name": "delete",
+								"limit": "2r/10m",
+								"strategy": "slidingwindowstrategy"
+							}
+						]
+					},
+					{
+						"targetTypeURI": "account/container/object",
+						"actions": [{
+							"name": "create",
+							"limit": "10r/s",
+							"strategy": "slidingwindowstrategy"
+						}]
+					}
+				]
+			}]
+		},
+		{
+			"id": "abcdef1233456789",
+			"services": [{
+				"type": "object-store",
+				"area": "storage",
+				"rates": [{
+					"targetTypeURI": "account/container/object",
+					"actions": [{
+						"name": "update",
+						"limit": "10r/m",
+						"strategy": "fixedwindowstrategy"
+					},
+					{
+						"name": "quark",
+						"limit": "1000r/s",
+						"strategy": "foobar"
+					}]
+				}]
+			}]
+		}
+	]
+}

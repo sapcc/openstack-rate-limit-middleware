@@ -45,6 +45,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+.stestr/
 
 # Translations
 *.mo
@@ -99,3 +100,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# debug tools
+*debugserver.py
+tools/Dockerfile
+tools/create_image.sh
+tools/*.gz
