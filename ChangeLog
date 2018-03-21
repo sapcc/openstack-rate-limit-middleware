@@ -1,0 +1,6 @@
+CHANGES
+=======
+
+* log level info -> debug
+* initial version based on openstack-watcher
+* Initial commit

@@ -1,0 +1,41 @@
+# custom rate limit response
+ratelimit_response:
+  headers:
+    X-Foo: RateLimitFoo
+  status: 498 Rate Limited
+  body: Rate Limit Exceeded
+
+# custom blacklist response
+blacklist_response:
+  status: 497 Blacklisted
+  headers:
+    X-Foo: Bar
+  content_type: "application/json"
+  json_body: {"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}
+
+whitelist:
+  - 1233456789abcdef
+  - 1233456789abcdef1233456789
+
+blacklist:
+  - abcdef1233456789
+  - abcdef1233456789abcdef
+  - abcdef1233456789
+
+# initial rate limits are provided via limes seed
+rates:
+  account/container:
+    - action: update
+      limit: 2r/m
+      strategy: slidingwindow
+    - action: create
+      limit: 5r/30m
+      strategy: slidingwindow
+
+  account/container/object:
+    - action: update
+      limit: 2r/m
+      strategy: slidingwindow
+    - action: read
+      limit: 2r/m
+      strategy: slidingwindow

@@ -1,0 +1,15 @@
+# initial rate limits are provided via limes seed
+rates:
+  servers:
+    - action: create
+      limit: 5r/m
+      strategy: slidingwindow
+    - action: get
+      limit: 2r/5m
+      strategy: slidingwindow
+    - action: delete
+      limit: 1r/s
+  flavor:
+    - action: create
+      limit: 5r/m
+      strategy: slidingwindow

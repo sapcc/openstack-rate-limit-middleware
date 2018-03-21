@@ -1,0 +1,19 @@
+service: compute
+
+# do not apply rate limits to these projects
+whitelist:
+  - project_id: 1233456789abcdef
+
+# these projects get an immediate rate limit response
+blacklist:
+  - project_id: abcdef1233456789
+
+# configure rate limits for each project
+limits:
+  servers:
+    - type: create
+      limit: 1r/m
+      strategy: slidingwindow
+    - type: read
+      limit: 5r/m
+      strategy: slidingwindow
