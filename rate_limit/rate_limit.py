@@ -22,6 +22,7 @@ from oslo_config import cfg
 
 from . import common
 from . import errors
+from . import limes
 from . import response
 from . import strategy as ratelimitstrategy
 
@@ -71,12 +72,23 @@ class OpenStackRateLimitMiddleware(object):
         if config_file:
             self.config = load_config(config_file)
 
-        # get rate limits from config file or limes
-        if self.wsgi_config.get('limes_enabled', False):
-            # TODO:
-            pass
-
         self.rate_limits = self.config.get(common.Constants.rate_limits, {})
+
+        # get rate limits from config file or limes
+        self.limes_enabled = wsgi_config.get('limes_enabled', False)
+        self.limes_rate_limits = {}
+        if self.limes_enabled and wsgi_config.get('auth_url'):
+            self.logger.debug("getting rate limits from limes '{0}'".format(self.limes_url))
+            self.limes = limes.Limes(
+                auth_url=wsgi_config.get('auth_url'),
+                user_id=wsgi_config.get('user_id'),
+                password=wsgi_config.get('password'),
+                domain_id=wsgi_config.get('domain_id')
+            )
+            self.limes_rate_limits = self.limes.list_ratelimits_for_projects_in_domain(
+                domain_id=wsgi_config.get('domain_id'),
+                service=wsgi_config.get('service_type')
+            )
 
         # use configured parameters or ensure defaults
         self.max_sleep_time_seconds = self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20)
@@ -136,14 +148,27 @@ class OpenStackRateLimitMiddleware(object):
                 resp = self.blacklist_response
                 return
 
-            # check if rate limits configured
-            if not self.rate_limits:
+            # check limes first for rate limits
+            rate_limit, rate_strategy = None
+            if self.limes_enabled:
+                rate_limit, rate_strategy = self._get_rate_limit_and_strategy_from_limes(
+                    action,
+                    target_type_uri,
+                    scope
+                )
+
+            # check whether a config file exists or a rate limit is set via limes
+            if not self.rate_limits and not rate_limit:
                 self.logger.debug("no rate limits configured")
                 return
 
-            # check if there's a rate limit and strategy configured for the request,
-            # which is identified by action, target_type_uri
-            rate_limit, rate_strategy = self._get_rate_limit_and_strategy(action, target_type_uri)
+            # try to get rate limit from configuration file
+            if not rate_limit:
+                # check if there's a rate limit and strategy configured for the request,
+                # which is identified by action, target_type_uri
+                rate_limit, rate_strategy = self._get_rate_limit_and_strategy(action, target_type_uri)
+
+            # still no rate limit? abort!
             if not rate_limit:
                 self.logger.debug('no rate limit configured for request with '
                                   'action: {0}, target_type_uri: {1}'.format(action, target_type_uri))
@@ -330,6 +355,45 @@ class OpenStackRateLimitMiddleware(object):
         finally:
             self.ratelimit_response = ratelimit_response
             self.blacklist_response = blacklist_response
+
+    def _get_rate_limit_and_strategy_from_limes(self, action, target_type_uri, scope):
+        rate_limit = rate_strat = None
+        try:
+            if not self.limes_rate_limits:
+                return
+
+            project_list = self.limes_rate_limits.get('projects')
+            service_list = self._find_service_in_project_list(project_list, 'project_id')
+            rate_list = self._find_rate_in_service_list(service_list, self.service_type)
+            action_list = self._find_action_in_rate_list(rate_list, target_type_uri)
+            rate_limit, rate_strat = self._find_limit_and_strategy_in_action_list(action_list, action)
+
+        finally:
+            return rate_limit, rate_strat
+
+    def _find_service_in_project_list(self, project_list, project_id):
+        for project in project_list:
+            if project.get('id') == project_id:
+                return project.get('services', [])
+        return []
+
+    def _find_rate_in_service_list(self, service_list, service_type):
+        for service in service_list:
+            if service.get('type') == service_type:
+                return service.get('rates', [])
+        return []
+
+    def _find_action_in_rate_list(self, rate_list, target_type_uri):
+        for rate in rate_list:
+            if rate.get('target_type_uri') == target_type_uri:
+                return rate.get('actions', [])
+        return []
+
+    def _find_limit_and_strategy_in_action_list(self, action_list, action_name):
+        for action in action_list:
+            if action.get('name') == action_name:
+                return action.get('limit'), action.get('strategy')
+        return None, None
 
 
 def load_config(cfg_file):

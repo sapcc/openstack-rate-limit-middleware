@@ -39,3 +39,10 @@ class UnitConversionError(Exception):
     Raised when a unit is invalid and cannot be converted
     """
     pass
+
+
+class LimesError(Exception):
+    """
+    Raised when rate limits cannot be fetched from limes
+    """
+    pass
