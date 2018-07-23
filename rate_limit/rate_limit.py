@@ -78,13 +78,15 @@ class OpenStackRateLimitMiddleware(object):
         self.limes_enabled = wsgi_config.get('limes_enabled', False)
         self.limes_rate_limits = {}
         if self.limes_enabled and wsgi_config.get('auth_url'):
-            self.logger.debug("getting rate limits from limes '{0}'".format(self.limes_url))
-            self.limes = limes.Limes(
+            self.limes = limes.Limes(logger=self.logger)
+            self.limes.authenticate(
                 auth_url=wsgi_config.get('auth_url'),
-                user_id=wsgi_config.get('user_id'),
+                username=wsgi_config.get('username'),
+                user_domain_name=wsgi_config.get('user_domain_name'),
                 password=wsgi_config.get('password'),
-                domain_id=wsgi_config.get('domain_id')
+                domain_name=wsgi_config.get('domain_name')
             )
+            # TODO: repeat every n minutes
             self.limes_rate_limits = self.limes.list_ratelimits_for_projects_in_domain(
                 domain_id=wsgi_config.get('domain_id'),
                 service=wsgi_config.get('service_type')

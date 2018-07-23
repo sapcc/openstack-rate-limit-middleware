@@ -14,34 +14,68 @@
 
 import requests
 
+from oslo_log import log
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
 
 
 class Limes(object):
-    def __init__(self):
-        self.limes_base_url = self._get_limes_base_url_from_catalog()
+    def __init__(self, logger=log.getLogger(__name__)):
+        self.logger = logger
+        self.keystone = None
+        self.limes_base_url = None
 
-    def _authenticate(self, auth_url, user_id, password, domain_id):
-        auth = v3.Password(
-            auth_url=auth_url,
-            user_id=user_id,
-            password=password,
-            domain_id=domain_id
-        )
-        sess = session.Session(auth=auth)
-        return client.Client(session=sess)
+    def authenticate(self, auth_url, username, user_domain_name, password, domain_name):
+        try:
+            self.logger.debug(
+                'attempting authentication using with '
+                'auth URL: {0}, username: {1}, user domain name: {2}, password: {3}, domain name: {4}'
+                .format(auth_url, username, user_domain_name, '*' * len(password), domain_name)
+            )
 
-    def _get_limes_base_url_from_catalog(self):
-        if not self.keystone.has_service_catalog():
-            return None
+            auth = v3.Password(
+                auth_url=auth_url,
+                username=username,
+                user_domain_name=user_domain_name,
+                password=password,
+                domain_name=domain_name,
+                reauthenticate=True
+            )
+            sess = session.Session(auth=auth)
+            self.keystone = client.Client(session=sess)
+            self.logger.debug('successfully created keystone client and obtained token')
+        except Exception as e:
+            self.logger.error('failed to create keystone client: {0}'.format(str(e)))
 
-        for service in self.keystone.service_catalog:
-            print service
+    def _get_limes_base_url(self, interface='public'):
+        limes_base_url = ''
+        try:
+            limes_service_id = None
 
-        #TODO
-        return ''
+            service_list = self.keystone.services.list()
+            if not service_list:
+                return
+
+            for service in service_list:
+                if service.name == 'limes':
+                    limes_service_id = service.id
+
+            endpoint_list = self.keystone.endpoints.list()
+            if not endpoint_list:
+                return
+
+            for endpoint in endpoint_list:
+                if limes_service_id == endpoint.service_id and \
+                        interface == endpoint.interface:
+                    limes_base_url = endpoint.url
+                    break
+
+            self.logger.warning("could not find limes base url in endpoints")
+        except Exception as e:
+            self.logger.error("error looking up limes base url: {0}".format(str(e)))
+        finally:
+            self.limes_base_url = limes_base_url
 
     def list_ratelimits_for_projects_in_domain(self, domain_id, project_id=None, service=None):
         """
@@ -69,13 +103,15 @@ class Limes(object):
             params = {}
         if not headers:
             headers = {}
+        if not self.limes_base_url:
+            self._get_limes_base_url()
 
         # only list rates
         params['rates'] = True
 
         # set X-AUTH-TOKEN header
-        headers['X-AUTH-TOKEN'] = self.keystone.get_token()
+        headers['X-AUTH-TOKEN'] = self.keystone.session.get_token()
         url = self.limes_base_url + path
 
         resp = requests.get(url=url, params=params, headers=headers)
-        return resp.json()
+        return resp
