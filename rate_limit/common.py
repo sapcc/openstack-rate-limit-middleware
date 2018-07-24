@@ -36,6 +36,9 @@ class Constants(object):
     initiator_host_address = 'initiator_host_address'
     target_project_id = 'target_project_id'
 
+    # fetch rate limits from limes every t seconds
+    limes_refresh_interval_seconds = 300
+
 
 class Units(Enum):
     """

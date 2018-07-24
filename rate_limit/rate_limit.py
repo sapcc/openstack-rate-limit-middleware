@@ -16,6 +16,7 @@ import memcache
 import os
 import yaml
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from datadog.dogstatsd import DogStatsd
 from oslo_log import log
 from oslo_config import cfg
@@ -73,10 +74,13 @@ class OpenStackRateLimitMiddleware(object):
             self.config = load_config(config_file)
 
         self.rate_limits = self.config.get(common.Constants.rate_limits, {})
+        self.service_type = wsgi_config.get('service_type', None)
 
         # get rate limits from config file or limes
         self.limes_enabled = wsgi_config.get('limes_enabled', False)
         self.limes_rate_limits = {}
+        self.limes = None
+        self.sched = None
         if self.limes_enabled and wsgi_config.get('auth_url'):
             self.limes = limes.Limes(logger=self.logger)
             self.limes.authenticate(
@@ -86,11 +90,27 @@ class OpenStackRateLimitMiddleware(object):
                 password=wsgi_config.get('password'),
                 domain_name=wsgi_config.get('domain_name')
             )
-            # TODO: repeat every n minutes
+            # get rate limits initially
             self.limes_rate_limits = self.limes.list_ratelimits_for_projects_in_domain(
                 domain_id=wsgi_config.get('domain_id'),
-                service=wsgi_config.get('service_type')
+                service=self.service_type
             )
+
+            limes_refresh_interval_seconds = wsgi_config.get(
+                'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
+            )
+
+            # fetch rate limits from limes every n seconds
+            self.sched = BackgroundScheduler()
+            self.sched.add_job(
+                self.limes.list_ratelimits_for_projects_in_domain, 'interval',
+                seconds=limes_refresh_interval_seconds,
+                kwargs={
+                    'domain_id': wsgi_config.get('domain_id'),
+                    'service': self.service_type
+                }
+            )
+            self.sched.start()
 
         # use configured parameters or ensure defaults
         self.max_sleep_time_seconds = self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20)
@@ -105,8 +125,16 @@ class OpenStackRateLimitMiddleware(object):
         self.whitelist = self.config.get('whitelist', [])
         self.blacklist = self.config.get('blacklist', [])
 
-        # configurable rate limit by
+        # configurable. rate limit by tuple of (rate_limit_by, action, target_type_uri)
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
+
+    def __del__(self):
+        try:
+            # shutdown background scheduler if limes is used as rate limit provider
+            if self.sched:
+                self.sched.shutdown()
+        except Exception as e:
+            self.logger.debug("error while shutting down: {0}".format(str(e)))
 
     @classmethod
     def factory(cls, global_config, **local_config):
@@ -153,7 +181,7 @@ class OpenStackRateLimitMiddleware(object):
             # check limes first for rate limits
             rate_limit, rate_strategy = None
             if self.limes_enabled:
-                rate_limit, rate_strategy = self._get_rate_limit_and_strategy_from_limes(
+                rate_limit, rate_strategy = self.get_rate_limit_and_strategy_from_limes(
                     action,
                     target_type_uri,
                     scope
@@ -205,6 +233,7 @@ class OpenStackRateLimitMiddleware(object):
 
         except Exception as e:
             self.logger.warning("checking rate limits failed with %s" % str(e))
+
         finally:
             return resp(environ, start_response)
 
@@ -358,18 +387,25 @@ class OpenStackRateLimitMiddleware(object):
             self.ratelimit_response = ratelimit_response
             self.blacklist_response = blacklist_response
 
-    def _get_rate_limit_and_strategy_from_limes(self, action, target_type_uri, scope):
+    def get_rate_limit_and_strategy_from_limes(self, action, target_type_uri, scope):
         rate_limit = rate_strat = None
         try:
             if not self.limes_rate_limits:
+                self.logger.warning("didn't find any rate limits in limes")
                 return
 
-            project_list = self.limes_rate_limits.get('projects')
-            service_list = self._find_service_in_project_list(project_list, 'project_id')
+            # parse limes response
+            project_list = self.limes_rate_limits.get('projects', [])
+            service_list = self._find_service_in_project_list(project_list, scope)
             rate_list = self._find_rate_in_service_list(service_list, self.service_type)
             action_list = self._find_action_in_rate_list(rate_list, target_type_uri)
             rate_limit, rate_strat = self._find_limit_and_strategy_in_action_list(action_list, action)
 
+        except Exception as e:
+            self.logger.error(
+                "could not extract limts for action '{0}', target_type_uri: '{1}', scope: '{2}' from limes: {3}"
+                .format(action, target_type_uri, scope, str(e))
+            )
         finally:
             return rate_limit, rate_strat
 
@@ -387,7 +423,7 @@ class OpenStackRateLimitMiddleware(object):
 
     def _find_action_in_rate_list(self, rate_list, target_type_uri):
         for rate in rate_list:
-            if rate.get('target_type_uri') == target_type_uri:
+            if rate.get('targetTypeURI') == target_type_uri:
                 return rate.get('actions', [])
         return []
 

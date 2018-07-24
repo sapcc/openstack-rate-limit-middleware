@@ -46,3 +46,13 @@ class FakeMemcached(object):
 class FakeApp(object):
     def __call__(self, environ, start_response):
         return Response(json_body='{"message":"fake app"}')(environ, start_response)
+
+
+class FakeKeystoneclient(object):
+    def __init__(self):
+        self.session = FakeSession()
+
+
+class FakeSession(object):
+    def get_token(self):
+        return "OS_TOKEN"

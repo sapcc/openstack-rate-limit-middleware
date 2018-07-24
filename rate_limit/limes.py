@@ -85,9 +85,6 @@ class Limes(object):
         :param service: limit query to a service
         :return: dictionary of projects and their rates in the given domain
         """
-        if not domain_id:
-            return
-
         path = '/v1/domains/{0}/projects'.format(domain_id)
         if project_id:
             path += '/projects/{0}'.format(project_id)
@@ -96,22 +93,32 @@ class Limes(object):
         if service:
             params['service'] = service
 
+        self.logger.debug("getting rate limits from limes: {0}".format(path))
+
         return self._get(path, params)
 
     def _get(self, path, params={}, headers={}):
-        if not params:
-            params = {}
-        if not headers:
-            headers = {}
-        if not self.limes_base_url:
-            self._get_limes_base_url()
+        response_json = {}
+        try:
+            if not params:
+                params = {}
+            if not headers:
+                headers = {}
+            self.limes_base_url = self.limes_base_url or self._get_limes_base_url()
+            if not self.limes_base_url:
+                self.logger.error("limes base path is unknown. get not get rate limits")
+                return None
 
-        # only list rates
-        params['rates'] = True
+            # only list rates
+            params['rates'] = True
 
-        # set X-AUTH-TOKEN header
-        headers['X-AUTH-TOKEN'] = self.keystone.session.get_token()
-        url = self.limes_base_url + path
+            # set X-AUTH-TOKEN header
+            headers['X-AUTH-TOKEN'] = self.keystone.session.get_token()
+            url = self.limes_base_url + path
 
-        resp = requests.get(url=url, params=params, headers=headers)
-        return resp
+            resp_raw = requests.get(url=url, params=params, headers=headers)
+            response_json = resp_raw.json()
+        except Exception as e:
+            self.logger.error("error while getting rate limits from limes: {0}".format(str(e)))
+        finally:
+            return response_json
