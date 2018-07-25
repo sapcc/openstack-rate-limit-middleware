@@ -16,7 +16,6 @@ import memcache
 import os
 import yaml
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from datadog.dogstatsd import DogStatsd
 from oslo_log import log
 from oslo_config import cfg
@@ -96,21 +95,9 @@ class OpenStackRateLimitMiddleware(object):
                 service=self.service_type
             )
 
-            limes_refresh_interval_seconds = wsgi_config.get(
+            self.limes_refresh_interval_seconds = wsgi_config.get(
                 'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
             )
-
-            # fetch rate limits from limes every n seconds
-            self.sched = BackgroundScheduler()
-            self.sched.add_job(
-                self.limes.list_ratelimits_for_projects_in_domain, 'interval',
-                seconds=limes_refresh_interval_seconds,
-                kwargs={
-                    'domain_id': wsgi_config.get('domain_id'),
-                    'service': self.service_type
-                }
-            )
-            self.sched.start()
 
         # use configured parameters or ensure defaults
         self.max_sleep_time_seconds = self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20)
@@ -127,14 +114,6 @@ class OpenStackRateLimitMiddleware(object):
 
         # configurable. rate limit by tuple of (rate_limit_by, action, target_type_uri)
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
-
-    def __del__(self):
-        try:
-            # shutdown background scheduler if limes is used as rate limit provider
-            if self.sched:
-                self.sched.shutdown()
-        except Exception as e:
-            self.logger.debug("error while shutting down: {0}".format(str(e)))
 
     @classmethod
     def factory(cls, global_config, **local_config):
@@ -387,15 +366,18 @@ class OpenStackRateLimitMiddleware(object):
             self.ratelimit_response = ratelimit_response
             self.blacklist_response = blacklist_response
 
-    def get_rate_limit_and_strategy_from_limes(self, action, target_type_uri, scope):
+    def get_rate_limit_and_strategy_from_limes(self, action, target_type_uri, scope, domain_id):
         rate_limit = rate_strat = None
         try:
-            if not self.limes_rate_limits:
-                self.logger.warning("didn't find any rate limits in limes")
-                return
+            key = 'ratelimit_limes_{0}'.format(domain_id)
+            limes_ratelimits = self.memcached.get(key)
+            if not limes_ratelimits:
+                # expired from memcached. get fresh from limes and store again.
+                limes_ratelimits = self.limes.list_ratelimits_for_projects_in_domain(domain_id)
+                self.memcached.set(key=key, val=limes_ratelimits, time=self.limes_refresh_interval_seconds)
 
             # parse limes response
-            project_list = self.limes_rate_limits.get('projects', [])
+            project_list = limes_ratelimits.get('projects', [])
             service_list = self._find_service_in_project_list(project_list, scope)
             rate_list = self._find_rate_in_service_list(service_list, self.service_type)
             action_list = self._find_action_in_rate_list(rate_list, target_type_uri)
