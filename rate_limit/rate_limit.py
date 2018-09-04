@@ -37,7 +37,7 @@ class OpenStackRateLimitMiddleware(object):
 
     def __init__(self, app, wsgi_config, logger=log.getLogger(__name__), memcached=None):
         log.register_options(cfg.CONF)
-        log.setup(cfg.CONF, 'openstack_rate_limit_middleware')
+        log.setup(cfg.CONF, 'openstack_ratelimit_middleware')
         self.logger = logger
         self.app = app
         # configuration via paste.ini

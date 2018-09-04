@@ -43,7 +43,7 @@ Example:
 }
 ```
 
-**Defaults** for each project will be deployed using limes' [seed](https://github.wdf.sap.corp/cc/secrets/blob/master/global/values/limes.yaml).
+**Defaults** for each project will be deployed using limes' constraints.
 
 ```
 limes: 
@@ -52,13 +52,18 @@ limes:
       projects in domain: 
         monsoon3: 
           object-store: 
-            rates: 
-              account/container: 
-                - action: update
-                  limit: 2r/m
-                  strategy: slidingwindow
-                - action: create
-                  limit: 5r/30m
-                  strategy: slidingwindow
+            rates:
+                global: 
+                  account/container: 
+                    - action: update
+                      limit: 2r/m
+                    - action: create
+                      limit: 5r/30m
+                default:
+                  account/container: 
+                    - action: update
+                      limit: 2r/m
+                    - action: create
+                      limit: 5r/30m   
 ```
 

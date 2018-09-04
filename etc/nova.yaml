@@ -17,7 +17,7 @@ rates:
       - type: read
         limit: 1000r/m
 
-  # default local rate limits counted per project
+  # default local rate limits applied to each project
   defaults:
     servers:
       - type: create

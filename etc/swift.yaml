@@ -38,7 +38,7 @@ rates:
         limit: 50r/m
         strategy: slidingwindow
 
-  # default local rate limits counted per project
+  # default local rate limits applied to each project
   default:
     account/container:
       - action: update

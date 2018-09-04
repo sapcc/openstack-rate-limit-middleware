@@ -6,14 +6,14 @@ The OpenStack Rate Limit Middleware enables traffic control for OpenStack APIs p
 Prerequisites
 -------------
 
-A scheme of classification for OpenStack request is required which maps an API call to an *action*, a path' to *target_type_uri*  and 
-extracts a scope from the token.
-This is done by the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware), 
-which watches and classifies requests based on the [DMTF CADF specification](https://www.dmtf.org/standards/cadf).
+A scheme of classification for OpenStack requests is required which characterizes API requests.  
+This is implemented by the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware), 
+which watches and classifies requests based on the [DMTF CADF specification](https://www.dmtf.org/standards/cadf).  
+Eventually, in terms of rate limiting, a request to a service can be described by an *action*, *target type URI*.
 
 ## Installation & Usage
 
-Install via
+Install this middleware via
 ```
 pip install git+https://github.com/sapcc/openstack-rate-limit-middleware.git 
 ```
@@ -34,19 +34,30 @@ More information is provided in the [configuration section](./docs/configuration
 Example for Swift (object-store):
 ```yaml
 rates:
+  # global rate limits. counted across all projects
   global:
     account/container:
-      # limit container updates to 5 requests per second
+      # limit container updates to 100 requests per second
       - action: update  
-        limit: 5r/s
-      # limit container creations to 2 requests every 5 minutes
+        limit: 100r/s
+      # limit container creations to 100 requests per second
       - action: create 
-        limit: 2r/5m
+        limit: 100r/s
+  
+  # default local rate limits. counted per project
+  default:
+    account/container:
+      # limit container updates to 10 requests per minute
+      - action: update  
+        limit: 10r/m
+      # limit container creations to 5 requests every 10 minutes
+      - action: create 
+        limit: 5r/10m
 ``` 
 
 ### Global, local and default rate limits
 
-This middleware 
+This middleware can be used to enforce rate limits on multiple levels. 
 Read more on how to configure global, local and default rate limits in the [configuration section](./docs/configuration.md).
 
 
