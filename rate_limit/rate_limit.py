@@ -66,6 +66,7 @@ class OpenStackRateLimitMiddleware(object):
             self.config = common.load_config(config_file)
 
         self.service_type = wsgi_config.get('service_type', None)
+        self.cadf_service_name = wsgi_config.get('cadf_service_name', None)
 
         # use configured parameters or ensure defaults
         self.max_sleep_time_seconds = self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20)
@@ -190,14 +191,20 @@ class OpenStackRateLimitMiddleware(object):
         try:
             self.metricsClient.open_buffer()
 
+            # if the service type and/or service name is not configured,
+            # attempt to extract watcher classification from environ and set it
+            self._set_service_type_and_name(environ)
+
             # get openstack-watcher-middleware classification from requests environ
             scope, action, target_type_uri = self.get_scope_action_target_type_uri_from_environ(environ)
 
-            metric_labels = {
-                'action': action,
-                'scope': scope,
-                'target_type_uri': target_type_uri
-            }
+            metric_labels = [
+                'service:{0}'.format(self.service_type),
+                'service_name:{0}'.format(self.cadf_service_name),
+                'action:{0}'.format(action),
+                'scope:{0}'.format(scope),
+                'target_type_uri:{0}'.format(target_type_uri)
+            ]
 
             # don't rate limit if any of scope, action, target type URI is unknown
             if common.is_none_or_unknown(scope) or \
@@ -267,7 +274,7 @@ class OpenStackRateLimitMiddleware(object):
             self.metricsClient.close_buffer()
 
         except Exception as e:
-            self.logger.debug("checking rate limits failed with %s" % str(e))
+            self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
 
         finally:
             return resp(environ, start_response)
@@ -310,10 +317,9 @@ class OpenStackRateLimitMiddleware(object):
                 target_type_uri = env_target_type_uri
 
             # get cadf service name and trim from target_type_uri
-            cadf_service_name = self._get_cadf_service_name(environ)
-            if not common.is_none_or_unknown(cadf_service_name):
+            if not common.is_none_or_unknown(self.cadf_service_name):
                 target_type_uri = self._trim_cadf_service_prefix_from_target_type_uri(
-                    cadf_service_name, target_type_uri
+                    self.cadf_service_name, target_type_uri
                 )
 
             # get scope, which might be initiator.project_id, target.project_id, etc.
@@ -321,7 +327,7 @@ class OpenStackRateLimitMiddleware(object):
 
         finally:
             self.logger.debug(
-                'got WATCHTER.* attributes from environ: action: {0}, target_type_uri: {1}, scope: {2}'
+                'got WATCHER.* attributes from environ: action: {0}, target_type_uri: {1}, scope: {2}'
                 .format(action, target_type_uri, scope))
             return action, target_type_uri, scope
 
@@ -347,14 +353,26 @@ class OpenStackRateLimitMiddleware(object):
         finally:
             return scope
 
-    def _get_cadf_service_name(self, environ):
-        # try configured cadf service name
-        svc_name = self.wsgi_config.get('cadf_service_name', None)
-        if not common.is_none_or_unknown(svc_name):
-            return svc_name
+    def _set_service_type_and_name(self, environ):
+        """
+        set the service type and name according to the watchers classification passed in the request WSGI environ
+        if nothing was configured
 
-        # try to extract from environ
-        return environ.get('WATCHER.CADF_SERVICE_NAME', None)
+        :param environ: the request WSGI environment
+        """
+        # get service type from environ
+        if common.is_none_or_unknown(self.service_type):
+            svc_type = environ.get('WATCHER.SERVICE_TYPE')
+            if not common.is_none_or_unknown(svc_type):
+                self.service_type = svc_type
+                self.ratelimit_provider.service_type = self.service_type
+
+        # set service name from environ
+        if common.is_none_or_unknown(self.cadf_service_name):
+            svc_name = environ.get('WATCHER.CADF_SERVICE_NAME')
+            if not common.is_none_or_unknown(svc_name):
+                self.cadf_service_name = svc_name
+                self.ratelimit_provider.cadf_service_name = self.cadf_service_name
 
     def _trim_cadf_service_prefix_from_target_type_uri(self, prefix, target_type_uri):
         """

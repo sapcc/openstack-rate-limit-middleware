@@ -155,7 +155,7 @@ class LimesRateLimitProvider(RateLimitProvider):
         """
 
         # TODO: global rate limits via configuration file or limes constraints?
-        pass
+        return -1, 'slidingwindow'
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
