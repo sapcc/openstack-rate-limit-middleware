@@ -209,7 +209,8 @@ class SlidingWindowStrategy(RateLimitStrategy):
                     math.ceil(hit_list[0] + sliding_window_seconds - now)
                 )
                 return self.rate_limit_response
-            self.memcached.cas(key, hit_list + [now])
+            # update number of requests and make sure the key expires eventually to avoid polluting the memcache
+            self.memcached.cas(key, hit_list + [now], time=2*sliding_window_seconds)
 
             return None
 
