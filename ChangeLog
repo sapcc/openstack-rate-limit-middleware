@@ -1,6 +1,8 @@
 CHANGES
 =======
 
-* log level info -> debug
+* fix metric labels
+* travis
+* readme
 * initial version based on openstack-watcher
 * Initial commit

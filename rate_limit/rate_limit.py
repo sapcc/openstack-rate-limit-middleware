@@ -78,7 +78,10 @@ class OpenStackRateLimitMiddleware(object):
         self._setup_response()
 
         # white-/blacklist can contain project, domain, user ids or the client ip address
-        self.whitelist = self.config.get('whitelist', [])
+        # don't apply rate limits to localhost
+        default_whitelist = ['127.0.0.1', 'localhost']
+        config_whitelist = self.config.get('whitelist', [])
+        self.whitelist = default_whitelist + config_whitelist
         self.blacklist = self.config.get('blacklist', [])
 
         # configurable. rate limit by tuple of (rate_limit_by, action, target_type_uri)
@@ -274,7 +277,8 @@ class OpenStackRateLimitMiddleware(object):
             self.metricsClient.close_buffer()
 
         except Exception as e:
-            self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
+            # TODO: debug
+            self.logger.info("checking rate limits failed with: {0}".format(str(e)))
 
         finally:
             return resp(environ, start_response)
@@ -303,7 +307,7 @@ class OpenStackRateLimitMiddleware(object):
                 return True
         return False
 
-    def get_action_targettypeuri_scope_from_environ(self, environ):
+    def get_scope_action_target_type_uri_from_environ(self, environ):
         action = target_type_uri = scope = None
         try:
             # get cadf action
@@ -329,7 +333,7 @@ class OpenStackRateLimitMiddleware(object):
             self.logger.debug(
                 'got WATCHER.* attributes from environ: action: {0}, target_type_uri: {1}, scope: {2}'
                 .format(action, target_type_uri, scope))
-            return action, target_type_uri, scope
+            return scope, action, target_type_uri
 
     def _get_scope_from_environ(self, environ):
         """
@@ -340,18 +344,16 @@ class OpenStackRateLimitMiddleware(object):
         :return: the scope
         """
         scope = env_scope = None
-        try:
-            if self.rate_limit_by == common.Constants.target_project_id:
-                env_scope = environ.get('WATCHER.TARGET_PROJECT_ID', None)
-            elif self.rate_limit_by == common.Constants.initiator_project_id:
-                env_scope = environ.get('WATCHER.INITIATOR_PROJECT_ID', None)
-            elif self.rate_limit_by == common.Constants.initiator_host_address:
-                env_scope = environ.get('WATCHER.INITIATOR_HOST_ADDRESS')
-            # make sure the scope is not 'unknown'
-            if not common.is_none_or_unknown(env_scope):
-                scope = env_scope
-        finally:
-            return scope
+        if self.rate_limit_by == common.Constants.target_project_id:
+            env_scope = environ.get('WATCHER.TARGET_PROJECT_ID', None)
+        elif self.rate_limit_by == common.Constants.initiator_host_address:
+            env_scope = environ.get('WATCHER.INITIATOR_HOST_ADDRESS', None)
+        else:
+            env_scope = environ.get('WATCHER.INITIATOR_PROJECT_ID', None)
+        # make sure the scope is not 'unknown'
+        if not common.is_none_or_unknown(env_scope):
+            scope = env_scope
+        return scope
 
     def _set_service_type_and_name(self, environ):
         """
