@@ -277,8 +277,7 @@ class OpenStackRateLimitMiddleware(object):
             self.metricsClient.close_buffer()
 
         except Exception as e:
-            # TODO: debug
-            self.logger.info("checking rate limits failed with: {0}".format(str(e)))
+            self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
 
         finally:
             return resp(environ, start_response)
