@@ -234,13 +234,13 @@ class OpenStackRateLimitMiddleware(object):
                 self.metricsClient.increment('requests_unknown_classification_total', tags=metric_labels)
                 return
 
-            # Check whitelist. if scope is whitelisted break here.
+            # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
             if self.is_scope_whitelisted(scope):
                 self.logger.debug("{0} is whitelisted. skipping rate limit".format(scope))
                 self.metricsClient.increment('requests_whitelisted_total', tags=metric_labels)
                 return
 
-            # Check blacklist. if scope is blacklisted return BlacklistResponse.
+            # Check blacklist. If scope is blacklisted return BlacklistResponse.
             if self.is_scope_blacklisted(scope):
                 self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
                 self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
@@ -248,18 +248,21 @@ class OpenStackRateLimitMiddleware(object):
                 return
 
             # Get global rate limits from the provider.
-            global_rate_limit, global_rate_strategy = self.ratelimit_provider.get_global_rate_limits(
+            global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
                 action, target_type_uri
             )
-            # Don't rate limit for rate_limit=-1 or if unknown.
-            if common.is_unlimited(global_rate_limit) or not global_rate_strategy:
-                self.logger.debug("no global rate limits configured  or unlimited for request: '{0} {1}'".format(
-                    action, target_type_uri)
+            # Don't rate limit if limit=-1 or unknown.
+            if common.is_unlimited(global_rate_limit):
+                self.logger.debug(
+                    "no global rate limits configured or unlimited for request: '{0} {1}'"
+                    .format(action, target_type_uri)
                 )
                 return
+
             # Check global rate limits.
-            rate_limit_response = self.global_ratelimits.rate_limit(
-                scope, action, target_type_uri, global_rate_limit
+            # Global rate limits enforce a backend protection by counting all requests independent of their scope.
+            rate_limit_response = self.backend.rate_limit(
+                scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
             )
             if rate_limit_response:
                 resp = rate_limit_response
@@ -267,11 +270,12 @@ class OpenStackRateLimitMiddleware(object):
                 return
 
             # Get local (for a certain scope) rate limits from provider.
-            local_rate_limit, local_rate_strategy = self.ratelimit_provider.get_local_rate_limits(
+            local_rate_limit = self.ratelimit_provider.get_local_rate_limits(
                 scope, action, target_type_uri
             )
+
             # Don't rate limit for rate_limit=-1 or if unknown.
-            if common.is_unlimited(local_rate_limit) or not local_rate_strategy:
+            if common.is_unlimited(local_rate_limit):
                 self.logger.debug(
                     "no local rate limits configured or unlimited for request '{0} {1}' in scope '{3}'".format(
                         action, target_type_uri, scope
@@ -279,9 +283,9 @@ class OpenStackRateLimitMiddleware(object):
                 )
                 return
 
-            # Check local rate limits.
-            rate_limit_response = self.local_ratelimits.rate_limit(
-                scope, action, target_type_uri, local_rate_limit
+            # Check local (for a specific scope) rate limits.
+            rate_limit_response = self.backend.rate_limit(
+                scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
             )
             if rate_limit_response:
                 resp = rate_limit_response

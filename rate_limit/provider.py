@@ -78,15 +78,14 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :param action: the cadf action for the request
         :param target_type_uri: the target type URI of the request
         :param kwargs: optional, additional parameters
-        :return: the global rate limit or -1 if not set
+        :return: the global rate limit or -1 (unlimited) if not set
         """
         ttu_ratelimits = self.global_ratelimits.get(target_type_uri, [])
         for rl in ttu_ratelimits:
             ratelimit = rl.get('limit', None)
-            ratestrategy = rl.get('strategy', 'slidingwindow')
             if action == rl.get('action') and ratelimit:
-                return ratelimit, ratestrategy
-        return -1, 'slidingwindow'
+                return ratelimit
+        return -1
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -101,10 +100,9 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         ttu_ratelimits = self.default_local_ratelimits.get(target_type_uri, [])
         for rl in ttu_ratelimits:
             ratelimit = rl.get('limit', None)
-            ratestrategy = rl.get('strategy', 'slidingwindow')
             if action == rl.get('action') and ratelimit:
-                return ratelimit, ratestrategy
-        return -1, 'slidingwindow'
+                return ratelimit
+        return -1
 
     def read_rate_limits_from_config(self, config_path):
         """
@@ -153,9 +151,8 @@ class LimesRateLimitProvider(RateLimitProvider):
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 if not set
         """
-
         # TODO: global rate limits via configuration file or limes constraints?
-        return -1, 'slidingwindow'
+        return -1
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -181,12 +178,11 @@ class LimesRateLimitProvider(RateLimitProvider):
         service = self._find_service_by_type_in_list(self.service_type, project.get('services', []))
         # find the rates by target type URI
         rate = self._find_rate_by_target_type_uri_in_list(target_type_uri, service.get('rates', []))
-        # finally find the limit and strategy
-        limit, strategy = self._find_limit_and_strategy_by_action_in_list(action, rate.get('actions', []))
-        if limit and strategy:
-            return limit, strategy
-        # otherwise return -1 (unlimited)
-        return -1, 'slidingwindow'
+        # finally find the limit
+        limit = self._find_limit_by_action_in_list(action, rate.get('actions', []))
+        if limit:
+            return limit
+        return -1
 
     def set_refresh_interval_seconds(self, refresh_interval_seconds):
         """
@@ -252,7 +248,6 @@ class LimesRateLimitProvider(RateLimitProvider):
         Query limes for rate limits for projects in a domain
         :param domain_id: the domain uid
         :param project_id: optional project uid
-        :param action: optional cadf action
         :return: dictionary of projects and their rates in the given domain
         """
         path = '/v1'
@@ -266,13 +261,11 @@ class LimesRateLimitProvider(RateLimitProvider):
         params = {
             'service': self.service_type
         }
-
         self.logger.debug("getting rate limits from limes: {0}".format(path))
-
         return self._get(path, params)
 
-    def _get_rate_limit_and_strategy_from_limes_response(self, scope, action, target_type_uri, domain_id):
-        rate_limit = rate_strat = None
+    def _get_rate_limit_from_limes_response(self, scope, action, target_type_uri, domain_id):
+        rate_limit = None
         try:
             key = 'ratelimit_limes_{0}'.format(domain_id)
             limes_ratelimits = self.memcached.get(key)
@@ -283,12 +276,12 @@ class LimesRateLimitProvider(RateLimitProvider):
                     key=key, val=limes_ratelimits, time=self.limes_refresh_interval_seconds, noreply=True
                 )
 
-            # parse limes response
+            # Parse limes response.
             project_list = limes_ratelimits.get('projects', [])
             service_list = self._find_service_in_project_list(project_list, scope)
             rate_list = self._find_rate_in_service_list(service_list, self.service_type)
             action_list = self._find_action_in_rate_list(rate_list, target_type_uri)
-            rate_limit, rate_strat = self._find_limit_and_strategy_in_action_list(action_list, action)
+            rate_limit = self._find_limit_in_action_list(action_list, action)
 
         except Exception as e:
             self.logger.error(
@@ -296,7 +289,7 @@ class LimesRateLimitProvider(RateLimitProvider):
                 .format(action, target_type_uri, scope, str(e))
             )
         finally:
-            return rate_limit, rate_strat
+            return rate_limit
 
     def _find_project_by_id_in_list(self, project_id, project_list):
         return common.find_item_by_key_in_list(project_id, 'id', project_list)
@@ -307,12 +300,12 @@ class LimesRateLimitProvider(RateLimitProvider):
     def _find_rate_by_target_type_uri_in_list(self, target_type_uri, rate_list):
         return common.find_item_by_key_in_list(target_type_uri, 'targetTypeURI', rate_list)
 
-    def _find_limit_and_strategy_by_action_in_list(self, action_name, action_list):
+    def _find_limit_by_action_in_list(self, action_name, action_list):
         action = common.find_item_by_key_in_list(
             action_name, 'name', action_list,
-            {'limit': -1, 'strategy': 'slidingwindow'}
+            {'limit': -1}
         )
-        return action.get('limit'), action.get('strategy')
+        return action.get('limit')
 
     def _get(self, path, params={}, headers={}):
         response_json = {}

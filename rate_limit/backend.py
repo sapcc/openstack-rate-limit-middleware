@@ -30,12 +30,22 @@ class Backend(object):
     Backend for storing rate limits.
     """
     def __init__(self, host, port, rate_limit_response, logger, **kwargs):
-        self.host = host
-        self.port = port
-        self.rate_limit_response = rate_limit_response
+        self.__host = host
+        self.__port = port
+        self.__rate_limit_response = rate_limit_response
         self.logger = logger
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
+        """
+        Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
+        If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
+
+        :param scope: the scope (project uuid, host ip, etc., ..) or None for global rate limits
+        :param action: the CADF action
+        :param target_type_uri: the CADF target type URI
+        :param max_rate_string: the max. rate limit per sliding window
+        :return: the configured RateLimitResponse or None
+        """
         raise NotImplementedError
 
 
@@ -51,9 +61,19 @@ class RedisBackend(Backend):
             logger=logger,
             kwargs=kwargs
         )
-        self.redis_conn_pool = redis.ConnectionPool(host=host, port=port)
+        self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
+        """
+        Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
+        If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
+
+        :param scope: the scope (project uuid, host ip, etc., ..) or None for global rate limits
+        :param action: the CADF action
+        :param target_type_uri: the CADF target type URI
+        :param max_rate_string: the max. rate limit per sliding window
+        :return: the configured RateLimitResponse or None
+        """
         try:
             key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
             max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
@@ -69,7 +89,7 @@ class RedisBackend(Backend):
         lookback_seconds = now - window_seconds
 
         # Create a new RedisClient using the ConnectionPool.
-        redis_client = redis.StrictRedis(connection_pool=self.redis_conn_pool, decode_responses=True)
+        redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
 
         # See https://engagor.github.io/blog/2017/05/02/sliding-window-rate-limiter-redis.
         # Create a transaction block (aka pipeline) to queue multiple commands for later execution.
@@ -92,8 +112,8 @@ class RedisBackend(Backend):
             pass
         else:
             # set RETRY-AFTER and always round up
-            self.rate_limit_response.set_retry_after(math.ceil(timestamps[0] + window_seconds - now))
-            return self.rate_limit_response
+            self.__rate_limit_response.set_retry_after(math.ceil(timestamps[0] + window_seconds - now))
+            return self.__rate_limit_response
 
 
 class MemcachedBackend(Backend):
@@ -108,12 +128,22 @@ class MemcachedBackend(Backend):
             logger=logger,
             kwargs=kwargs
         )
-        self.memcached = memcache.Client(
+        self.__memcached = memcache.Client(
             servers=[host],
             debug=1
         )
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
+        """
+        Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
+        If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
+
+        :param scope: the scope (project uuid, host ip, etc., ..) or None for global rate limits
+        :param action: the CADF action
+        :param target_type_uri: the CADF target type URI
+        :param max_rate_string: the max. rate limit per sliding window
+        :return: the configured RateLimitResponse or None
+        """
         try:
             max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
             key = common.key_func(scope, action, target_type_uri)
@@ -129,10 +159,10 @@ class MemcachedBackend(Backend):
         now = time.time()
 
         # get list of requests that hit the api
-        hit_list = self.memcached.gets(key)
+        hit_list = self.__memcached.gets(key)
         if not hit_list or not isinstance(hit_list, list):
             hit_list = []
-        hit_list = self._get_hits_in_current_window(hit_list, now - window_seconds)
+        hit_list = self.__get_hits_in_current_window(hit_list, now - window_seconds)
 
         rate_limit_reached = len(hit_list) + 1 > max_calls
         if rate_limit_reached:
@@ -140,18 +170,18 @@ class MemcachedBackend(Backend):
                 'rate limit reached key: {0}, max_rate: {1}, window_seconds: {2}'
                 .format(key, max_calls, window_seconds)
             )
-            # set RETRY-AFTER and always round up
-            self.rate_limit_response.set_retry_after(
+            # Set RETRY-AFTER header and always round up.
+            self.__rate_limit_response.set_retry_after(
                 math.ceil(hit_list[0] + window_seconds - now)
             )
-            return self.rate_limit_response
+            return self.__rate_limit_response
         # update number of requests and make sure the key expires eventually to avoid polluting the memcache
-        self.memcached.cas(key, hit_list + [now], time=2 * window_seconds)
+        self.__memcached.cas(key, hit_list + [now], time=2 * window_seconds)
         return None
 
     def key_with_time_window(self, scope, action, target_type_uri, time_window):
         """
-        returns a key with a time window suffix, e.g. '012314af_create_servers_11-04-2018_13:00:29'
+        Returns a key with a time window suffix, e.g. '012314af_create_servers_11-04-2018_13:00:29'.
 
         :param scope: the scope uid of the request
         :param action: cadf action the request
@@ -162,10 +192,10 @@ class MemcachedBackend(Backend):
         return '{0}_{1}'.format(common.key_func(scope, action, target_type_uri), time_window)
 
     @staticmethod
-    def _get_hits_in_current_window(timestamp_list, not_older_than_timestamp=time.time()):
+    def __get_hits_in_current_window(timestamp_list, not_older_than_timestamp=time.time()):
         """
-        get list of requests (actually their timestamps) that hit the api within the current sliding window.
-        if any left: also expire outdated timestamps
+        Get list of requests (actually their timestamps) that hit the api within the current sliding window.
+        If any left: also expire outdated timestamps
 
         :param timestamp_list: list of timestamps
         :param not_older_than_timestamp: delete items older than this timestamp

@@ -8,13 +8,11 @@
 						"targetTypeURI": "account/container",
 						"actions": [{
 								"name": "update",
-								"limit": "5r/m",
-								"strategy": "slidingwindowstrategy"
+								"limit": "5r/m"
 							},
 							{
 								"name": "delete",
-								"limit": "2r/10m",
-								"strategy": "slidingwindowstrategy"
+								"limit": "2r/10m"
 							}
 						]
 					},
@@ -22,8 +20,7 @@
 						"targetTypeURI": "account/container/object",
 						"actions": [{
 							"name": "create",
-							"limit": "10r/s",
-							"strategy": "slidingwindowstrategy"
+							"limit": "10r/s"
 						}]
 					}
 				]
@@ -38,13 +35,11 @@
 					"targetTypeURI": "account/container/object",
 					"actions": [{
 						"name": "update",
-						"limit": "10r/m",
-						"strategy": "fixedwindowstrategy"
+						"limit": "10r/m"
 					},
 					{
 						"name": "quark",
-						"limit": "1000r/s",
-						"strategy": "foobar"
+						"limit": "1000r/s"
 					}]
 				}]
 			}]
