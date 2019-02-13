@@ -119,5 +119,6 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
                 "rate limit for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_ratelimit, rate_limit)
             )
 
+
 if __name__ == '__main__':
     unittest.main()
