@@ -38,8 +38,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
                 'max_sleep_time_seconds': 15,
                 'rate_buffer_seconds': 10,
                 'clock_accuracy': '1ms',
-            },
-            memcached=fake.FakeMemcache()
+            }
         )
         self.is_setup = True
 
