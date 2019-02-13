@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -26,7 +26,7 @@ from . import common
 
 class RateLimitProvider(object):
     """
-    Interface to obtain rate limits from different sources
+    Interface to obtain rate limits from different sources.
 
     """
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
@@ -37,8 +37,8 @@ class RateLimitProvider(object):
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
-        get the global rate limit per action and target type URI
-        returns -1 if unlimited
+        Get the global rate limit per action and target type URI.
+        Returns -1 if unlimited.
 
         :param action: the cadf action for the request
         :param target_type_uri: the target type URI of the request
@@ -49,7 +49,7 @@ class RateLimitProvider(object):
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
-        get the local (project/domain/ip, ..) rate limit per scope, action, target type URI
+        Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.
 
         :param scope: the UUID of the project, domain or the IP
         :param action: the cadf action of the request
@@ -62,7 +62,7 @@ class RateLimitProvider(object):
 
 class ConfigurationRateLimitProvider(RateLimitProvider):
     """
-    The provider to obtain rate limits from a configuration file
+    The provider to obtain rate limits from a configuration file.
 
     """
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
@@ -72,8 +72,8 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
-        get the global rate limit per action and target type URI
-        returns -1 if unlimited
+        Get the global rate limit per action and target type URI
+        returns -1 if unlimited.
 
         :param action: the cadf action for the request
         :param target_type_uri: the target type URI of the request
@@ -90,7 +90,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
-        get the local (project/domain/ip, ..) rate limit per scope, action, target type URI
+        Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.
 
         :param scope: the UUID of the project, domain or the IP
         :param action: the cadf action of the request
@@ -108,7 +108,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
     def read_rate_limits_from_config(self, config_path):
         """
-        read rate limits from configuration file
+        Read rate limits from configuration file.
 
         :param config_path: path to the configuration file
         """
@@ -120,7 +120,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
 class LimesRateLimitProvider(RateLimitProvider):
     """
-    The provider to obtain rate limits from limes
+    The provider to obtain rate limits from limes.
     """
 
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
@@ -128,7 +128,7 @@ class LimesRateLimitProvider(RateLimitProvider):
             service_type=service_type, logger=logger, kwargs=kwargs
         )
 
-        # limes provider will use memcached to store ratelimits for a configurable time (refresh_interval_seconds)
+        # Limes provider will use memcached to store ratelimits for a configurable time (refresh_interval_seconds).
         memcache_host = '127.0.0.1'
         if kwargs:
             memcache_host = kwargs.get('memcache_host', '127.0.0.1')
@@ -145,8 +145,8 @@ class LimesRateLimitProvider(RateLimitProvider):
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
-        get the global rate limit per action and target type URI
-        returns -1 if unlimited
+        Get the global rate limit per action and target type URI.
+        Returns -1 if unlimited.
 
         :param action: the cadf action for the request
         :param target_type_uri: the target type URI of the request
@@ -159,7 +159,7 @@ class LimesRateLimitProvider(RateLimitProvider):
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
-        get the local (project/domain/ip, ..) rate limit per scope, action, target type URI
+        Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.
 
         :param scope: the UUID of the project, domain or the IP
         :param action: the cadf action of the request
@@ -175,7 +175,7 @@ class LimesRateLimitProvider(RateLimitProvider):
             domain_id=domain_id
         )
 
-        # find the current project by id
+        # Find the current project by id.
         project = self._find_project_by_id_in_list(scope, rate_limit_list.get('projects', []))
         # find the current service by type
         service = self._find_service_by_type_in_list(self.service_type, project.get('services', []))
@@ -190,7 +190,7 @@ class LimesRateLimitProvider(RateLimitProvider):
 
     def set_refresh_interval_seconds(self, refresh_interval_seconds):
         """
-        set the interval in which rate limits are refreshed
+        Set the interval in which rate limits are refreshed.
 
         :param refresh_interval_seconds: the interval in seconds
         """
@@ -277,7 +277,7 @@ class LimesRateLimitProvider(RateLimitProvider):
             key = 'ratelimit_limes_{0}'.format(domain_id)
             limes_ratelimits = self.memcached.get(key)
             if not limes_ratelimits:
-                # expired from memcached. get fresh from limes and store again.
+                # Expired from memcached. Get fresh from limes and store again.
                 limes_ratelimits = self.limes.list_ratelimits_for_projects_in_domain(domain_id)
                 self.memcached.set(
                     key=key, val=limes_ratelimits, time=self.limes_refresh_interval_seconds, noreply=True

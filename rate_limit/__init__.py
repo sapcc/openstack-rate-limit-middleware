@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -16,6 +16,6 @@ from .rate_limit import OpenStackRateLimitMiddleware
 
 
 def main(global_config, **settings):
-    # settings comes from paste deploy, whatever values were in the section of
-    # the deployment config file
+    # Settings comes from paste deploy, whatever values were in the section of
+    # the deployment config file.
     return OpenStackRateLimitMiddleware

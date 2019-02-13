@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,9 +18,22 @@ import yaml
 from . import errors
 
 
+CADF_SERVICE_TYPE_PREFIX_MAP = {
+    'key-manager': 'service/security/keymanager',
+    'volume': 'service/storage/block',
+    'baremetal': 'service/compute/baremetal',
+    'share': 'service/storage/share',
+    'identity': 'data/security',
+    'dns': 'service/dns',
+    'network': 'service/network',
+    'compute': 'service/compute',
+    'image': 'service/storage/image'
+}
+
+
 class Constants(object):
     """
-    shared constants, primarily used to parse the configuration
+    Shared constants, primarily used to parse the configuration.
     """
     ratelimit_response = 'ratelimit_response'
     blacklist_response = 'blacklist_response'
@@ -37,10 +50,13 @@ class Constants(object):
     # fetch rate limits from limes every t seconds
     limes_refresh_interval_seconds = 300
 
+    backend_redis = 'redis'
+    backend_memcache = 'memcache'
+
 
 def key_func(scope, action, target_type_uri):
     """
-    creates the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'
+    Creates the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'.
 
     :param scope: the identifier of the scope (project uid, user uid, ip addr, ..)
     :param action: the cadf action
@@ -57,7 +73,7 @@ def printable_timestamp(timestamp):
 
 def is_none_or_unknown(thing):
     """
-    check if a thing is None or unknown
+    Check if a thing is None or unknown.
 
     :param thing: the cadf action, cadf target_type_uri, ..
     :return: bool whether thing is None or unknown
@@ -67,7 +83,7 @@ def is_none_or_unknown(thing):
 
 def is_unlimited(rate_limit):
     """
-    check whether a rate limit is None or unlimited (indicated by '-1')
+    Check whether a rate limit is None or unlimited (indicated by '-1').
 
     :param rate_limit: the rate limit to check
     :return: bool
@@ -77,7 +93,7 @@ def is_unlimited(rate_limit):
 
 def is_ratelimit_by_project_id(ratelimit_by):
     """
-    check whether the scope is the initiator or target project id
+    Check whether the scope is the initiator or target project id.
 
     :param ratelimit_by: the configurable scope by which is rate limited
     :return: bool whether the scope is initiator|target project id
@@ -87,7 +103,7 @@ def is_ratelimit_by_project_id(ratelimit_by):
 
 def find_item_by_key_in_list(item, key, list_to_search, empty_item={}):
     """
-    find an item in a list by its key
+    Find an item in a list by its key.
 
     :param item: the item we're looking for
     :param key: the key by which the item can be identified
@@ -103,7 +119,7 @@ def find_item_by_key_in_list(item, key, list_to_search, empty_item={}):
 
 def load_config(cfg_file):
     """
-    load a yaml configuration as a dictionary
+    Load a yaml configuration as a dictionary.
 
     :param cfg_file: path to the yaml configuration file
     :return: the configuration as dictionary

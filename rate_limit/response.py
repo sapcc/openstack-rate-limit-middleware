@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -35,11 +35,11 @@ def response_parameters_from_config(response_config):
 
 class RateLimitExceededResponse(Response):
     """
-    defines the rate limit response and defaults, which can be overwritten via configuration.
+    Defines the rate limit response and defaults, which can be overwritten via configuration.
     """
     def __init__(self, status=None, headers=None, content_type=None, body=None, json_body=None):
         """
-        creates a new RateLimitExceededResponse with either a body or json_body
+        Creates a new RateLimitExceededResponse with either a body or json_body.
 
         :param status: the status code
         :param headers: list of header dictionaries
@@ -63,6 +63,11 @@ class RateLimitExceededResponse(Response):
         )
 
     def set_retry_after(self, retry_after):
+        """
+        Set the Retry-After header.
+
+        :param retry_after: the duration in seconds
+        """
         if not self.headerlist:
             self.headerlist = []
         self.headerlist.append(('Retry-After', int(retry_after)))

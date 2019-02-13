@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,34 +15,34 @@
 
 class ConfigError(Exception):
     """
-    Raised when configuration could not be loaded or interpreted
+    Raised when configuration could not be loaded or interpreted.
     """
     pass
 
 
 class MemcacheConnectionError(Exception):
     """
-    Raised when connection to memcached caused an error
+    Raised when connection to memcached caused an error.
     """
     pass
 
 
 class MaxSleepTimeHitError(Exception):
     """
-    Raised when the maximal sleep time was hit for a key
+    Raised when the maximal sleep time was hit for a key.
     """
     pass
 
 
 class UnitConversionError(Exception):
     """
-    Raised when a unit is invalid and cannot be converted
+    Raised when a unit is invalid and cannot be converted.
     """
     pass
 
 
 class LimesError(Exception):
     """
-    Raised when rate limits cannot be fetched from limes
+    Raised when rate limits cannot be fetched from limes.
     """
     pass
