@@ -22,9 +22,13 @@ class TestResponse(unittest.TestCase):
             ratelimit_response.content_type,
             "application/json"
         )
+
+        actual_body = sorted(json.loads(ratelimit_response.json_body))
+        expected_body = sorted(json.loads('{"error": {"status": "429 Too Many Requests", "message": "Too Many Requests"}}'))
+
         self.assertEqual(
-            str(ratelimit_response.json_body),
-            json.dumps({"error": {"status": "429 Too Many Requests", "message": "Too Many Requests"}})
+            actual_body,
+            expected_body
         )
 
     def test_custom_ratelimitexceededresponse_html(self):
@@ -51,11 +55,15 @@ class TestResponse(unittest.TestCase):
             "expected ratelimit response body 'Rate Limit Exceeded' but got '{0}'"
             .format(ratelimit_response.status)
         )
+
+        h = ratelimit_response.headers.get('X-FOO', None)
+
+        print "-------------------------------------------------------"
+        print h
         self.assertEqual(
-            ratelimit_response.headers,
-            [{'X-FOO': 'RateLimitFoo'}],
-            "expected ratelimit response headers '{'X-FOO': 'RateLimitFoo'}' but got '{0}'"
-            .format(str(ratelimit_response.headers))
+            str(h),
+            'RateLimitFoo',
+            "expected ratelimit response headers '{'X-FOO': 'RateLimitFoo'}'"
         )
 
     def test_default_blacklistexceededresponse(self):

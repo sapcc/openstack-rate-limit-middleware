@@ -18,9 +18,8 @@ import memcache
 import redis
 import time
 
-from rate_limit import common
-from rate_limit import Units
-
+from . import common
+from .units import Units
 
 logging.basicConfig(format='%(asctime)-15s %(message)s')
 
