@@ -52,20 +52,17 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
         self.assertIsNotNone(rate_limits)
         self.watcher.ratelimit_provider.rate_limits = rate_limits
 
-        rate_limit, rate_strat = self.watcher.ratelimit_provider.get_local_rate_limits(
+        rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             'abcdef1233456789', 'update', 'account/container/object'
         )
         self.assertEqual(rate_limit, '10r/m', "the rate limit should be '10r/m'")
-        self.assertEqual(rate_strat, 'fixedwindowstrategy', "the strategy should be 'fixedwindowstrategy'")
 
-        rate_limit, rate_strat = self.watcher.ratelimit_provider.get_local_rate_limits(
+        rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             '1233456789abcdef1233456789', 'delete', 'account/container'
         )
         self.assertEqual(rate_limit, '2r/10m', "the rate limit should be '2r/10m'")
-        self.assertEqual(rate_strat, 'slidingwindowstrategy', "the strategy should be 'slidingwindowstrategy'")
 
-        rate_limit, rate_strat = self.watcher.ratelimit_provider.get_local_rate_limits(
+        rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             'non_existent_project_id', 'delete', 'account/container'
         )
         self.assertEqual(rate_limit, -1, "the rate limit should be '-1'")
-        self.assertEqual(rate_strat, 'slidingwindow', "the strategy should be 'slidingwindow'")

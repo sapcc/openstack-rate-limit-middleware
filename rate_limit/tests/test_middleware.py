@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -88,40 +88,35 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             json.dumps({"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}})
         )
 
-    def test_get_rate_limit_and_strategy(self):
+    def test_get_rate_limit(self):
         stimuli = [
             {
                 'action': 'foo',
                 'target_type_uri': 'bar',
-                'expected': (-1, 'slidingwindow')
+                'expected': -1
             },
             {
                 'action': 'create',
                 'target_type_uri': 'account/container',
-                'expected': ('5r/30m', 'slidingwindow')
+                'expected': '5r/30m'
             },
             {
                 'action': 'read',
                 'target_type_uri': 'account/container/object',
-                'expected': ('2r/m', 'slidingwindow')
+                'expected': '2r/m'
             }
         ]
 
         for stim in stimuli:
             action = stim.get('action')
             target_type_uri = stim.get('target_type_uri')
-            expected_ratelimit, expected_strategy = stim.get('expected')
+            expected_ratelimit = stim.get('expected')
 
-            rate_limit, rate_strat = self.app.ratelimit_provider.get_global_rate_limits(action, target_type_uri)
+            rate_limit = self.app.ratelimit_provider.get_global_rate_limits(action, target_type_uri)
             self.assertEqual(
                 rate_limit,
                 expected_ratelimit,
                 "rate limit for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_ratelimit, rate_limit)
-            )
-            self.assertEqual(
-                rate_strat,
-                expected_strategy,
-                "rate limit strategy for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_strategy, rate_strat)
             )
 
 

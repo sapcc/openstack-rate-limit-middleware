@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+* fix requirements
+* pep8
+* re-add global, local rate limits based on redis. fix tests
+* redis
+* log level info->debug
+* log level info->debug
+* fix default: rate limit by initiator project id
 * fix metric labels
 * travis
 * readme

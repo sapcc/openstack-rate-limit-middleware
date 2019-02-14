@@ -1,4 +1,4 @@
-# Copyright 2018 SAP SE
+# Copyright 2019 SAP SE
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -69,10 +69,14 @@ class Units(Enum):
     @staticmethod
     def parse_sliding_window_rate_limit(value_string):
         """
-        parses sliding window rate limit definition like '2r/m' or '2r/15m'
+        Parses sliding window rate limit definition
+
+        Example:
+        (a) 2r/m  => 2, 60
+        (b) 2r/5m => 2, 300
 
         :param value_string: rate limit as string, e.g. '2r/m'
-        :return: the value and unit
+        :return: the max number of requests and sliding window in seconds
         """
         try:
             value, unit_string = value_string.split('r/')
@@ -90,7 +94,7 @@ class Units(Enum):
         :return: the value in seconds
         """
         try:
-            regex = re.compile('(?P<value>\d*)(?P<unit>\w+)')
+            regex = re.compile(r'(?P<value>\d*)(?P<unit>\w+)')
             result = regex.match(value_string)
             if not result:
                 return -1
