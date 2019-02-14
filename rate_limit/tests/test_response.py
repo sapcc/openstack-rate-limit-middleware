@@ -57,9 +57,6 @@ class TestResponse(unittest.TestCase):
         )
 
         h = ratelimit_response.headers.get('X-FOO', None)
-
-        print "-------------------------------------------------------"
-        print h
         self.assertEqual(
             str(h),
             'RateLimitFoo',
