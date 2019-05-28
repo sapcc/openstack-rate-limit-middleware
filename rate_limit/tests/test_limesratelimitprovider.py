@@ -27,8 +27,7 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
                 'rate_buffer_seconds': 10,
                 'clock_accuracy': '1ms',
                 'service_type': SERVICE_TYPE
-            },
-            memcached=fake.FakeMemcache()
+            }
         )
 
         limes_provider = provider.LimesRateLimitProvider(service_type=SERVICE_TYPE)

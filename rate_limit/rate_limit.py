@@ -35,7 +35,7 @@ class OpenStackRateLimitMiddleware(object):
       action          ( create, read, update, delete, authenticate, .. )
     """
 
-    def __init__(self, app, wsgi_config, logger=log.getLogger(__name__), memcached=None):
+    def __init__(self, app, wsgi_config, logger=log.getLogger(__name__)):
         log.register_options(cfg.CONF)
         log.setup(cfg.CONF, 'openstack_ratelimit_middleware')
         self.logger = logger
@@ -44,7 +44,6 @@ class OpenStackRateLimitMiddleware(object):
         self.wsgi_config = wsgi_config
 
         # StatsD is used to emit metrics.
-        # TODO: Use native prometheus client.
         statsd_host = wsgi_config.get('statsd_host', '127.0.0.1')
         statsd_port = wsgi_config.get('statsd_port', 9125)
         statsd_prefix = wsgi_config.get('statsd_prefix', 'openstack_ratelimit')
@@ -61,10 +60,10 @@ class OpenStackRateLimitMiddleware(object):
         backend_type = wsgi_config.get('backend', 'redis')
         self.logger.debug('using backend: {0}'.format(backend_type))
 
-        backend_host = wsgi_config.get('host', '127.0.0.1')
+        backend_host = wsgi_config.get('backend_host', '127.0.0.1')
         self.logger.debug('using backend host {0}'.format(backend_host))
 
-        backend_port = wsgi_config.get('port', '6379')
+        backend_port = wsgi_config.get('backend_port', '6379')
         self.logger.debug('using backend port {0}'.format(backend_port))
 
         # Load configuration file.
@@ -100,12 +99,11 @@ class OpenStackRateLimitMiddleware(object):
         self.whitelist = default_whitelist + config_whitelist
         self.blacklist = self.config.get('blacklist', [])
 
-        # Configurable rate limit by tuple of (rate_limit_by, action, target_type_uri).
-        # Default initiator project id.
+        # Configurable scope in which a rate limit is applied. Defaults to initiator project id.
+        # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
-        # Initializes the backend as configured.
-        # Uses Redis by default.
+        # Initializes the backend as configured. Defaults to redis.
         if backend_type == common.Constants.backend_memcache:
             self.backend = rate_limit_backend.MemcachedBackend(
                 host=backend_host,
@@ -121,7 +119,8 @@ class OpenStackRateLimitMiddleware(object):
                 logger=self.logger
             )
 
-        # Init provider for rate limits. currently either from configuration or limes.
+        # Provider for rate limits. Defaults to configuration file.
+        # Also supports Limes.
         configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
             service_type=self.service_type,
             logger=self.logger
@@ -156,10 +155,10 @@ class OpenStackRateLimitMiddleware(object):
 
     def _setup_response(self):
         """
-        Setup RateLimitExceededResponse and BlacklistResponse.
+        Setup configurable RateLimitExceededResponse and BlacklistResponse.
         """
 
-        # Default responses
+        # Default responses.
         ratelimit_response = response.RateLimitExceededResponse()
         blacklist_response = response.BlacklistResponse()
 
@@ -194,6 +193,72 @@ class OpenStackRateLimitMiddleware(object):
             return cls(app, conf)
         return limiter
 
+    def _rate_limit(self, scope, action, target_type_uri):
+        metric_labels = [
+            'service:{0}'.format(self.service_type),
+            'service_name:{0}'.format(self.cadf_service_name),
+            'action:{0}'.format(action),
+            'scope:{0}'.format(scope),
+            'target_type_uri:{0}'.format(target_type_uri)
+        ]
+
+        # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
+        if self.is_scope_whitelisted(scope):
+            self.logger.debug("{0} is whitelisted. skipping rate limit".format(scope))
+            self.metricsClient.increment('requests_whitelisted_total', tags=metric_labels)
+            return None
+
+        # Check blacklist. If scope is blacklisted return BlacklistResponse.
+        if self.is_scope_blacklisted(scope):
+            self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
+            self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
+            return self.blacklist_response
+
+        # Get global rate limits from the provider.
+        global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
+            action, target_type_uri
+        )
+        # Don't rate limit if limit=-1 or unknown.
+        if common.is_unlimited(global_rate_limit):
+            self.logger.debug(
+                "no global rate limits configured or unlimited for request: '{0} {1}'"
+                .format(action, target_type_uri)
+            )
+            return None
+
+        # Check global rate limits.
+        # Global rate limits enforce a backend protection by counting all requests independent of their scope.
+        rate_limit_response = self.backend.rate_limit(
+            scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
+        )
+        if rate_limit_response:
+            self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
+            return rate_limit_response
+
+        # Get local (for a certain scope) rate limits from provider.
+        local_rate_limit = self.ratelimit_provider.get_local_rate_limits(
+            scope, action, target_type_uri
+        )
+
+        # Don't rate limit for rate_limit=-1 or if unknown.
+        if common.is_unlimited(local_rate_limit):
+            self.logger.debug(
+                "no local rate limits configured or unlimited for request '{0} {1}' in scope '{3}'".format(
+                    action, target_type_uri, scope
+                )
+            )
+            return None
+
+        # Check local (for a specific scope) rate limits.
+        rate_limit_response = self.backend.rate_limit(
+            scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
+        )
+        if rate_limit_response:
+            self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
+            return rate_limit_response
+
+        return None
+
     def __call__(self, environ, start_response):
         """
         WSGI entry point. Wraps environ in webob.Request.
@@ -215,14 +280,6 @@ class OpenStackRateLimitMiddleware(object):
             # Get openstack-watcher-middleware classification from requests environ.
             scope, action, target_type_uri = self.get_scope_action_target_type_uri_from_environ(environ)
 
-            metric_labels = [
-                'service:{0}'.format(self.service_type),
-                'service_name:{0}'.format(self.cadf_service_name),
-                'action:{0}'.format(action),
-                'scope:{0}'.format(scope),
-                'target_type_uri:{0}'.format(target_type_uri)
-            ]
-
             # Don't rate limit if any of scope, action, target type URI is unknown.
             if common.is_none_or_unknown(scope) or \
                common.is_none_or_unknown(action) or \
@@ -231,73 +288,17 @@ class OpenStackRateLimitMiddleware(object):
                     "request cannot be handled by rate limit middleware due to missing attributes: "
                     "action: {0}, target_type_uri: {1}, scope: {2}".format(action, target_type_uri, scope)
                 )
-                self.metricsClient.increment('requests_unknown_classification_total', tags=metric_labels)
                 return
 
-            # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
-            if self.is_scope_whitelisted(scope):
-                self.logger.debug("{0} is whitelisted. skipping rate limit".format(scope))
-                self.metricsClient.increment('requests_whitelisted_total', tags=metric_labels)
-                return
-
-            # Check blacklist. If scope is blacklisted return BlacklistResponse.
-            if self.is_scope_blacklisted(scope):
-                self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
-                self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
-                resp = self.blacklist_response
-                return
-
-            # Get global rate limits from the provider.
-            global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
-                action, target_type_uri
-            )
-            # Don't rate limit if limit=-1 or unknown.
-            if common.is_unlimited(global_rate_limit):
-                self.logger.debug(
-                    "no global rate limits configured or unlimited for request: '{0} {1}'"
-                    .format(action, target_type_uri)
-                )
-                return
-
-            # Check global rate limits.
-            # Global rate limits enforce a backend protection by counting all requests independent of their scope.
-            rate_limit_response = self.backend.rate_limit(
-                scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
-            )
-            if rate_limit_response:
-                resp = rate_limit_response
-                self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
-                return
-
-            # Get local (for a certain scope) rate limits from provider.
-            local_rate_limit = self.ratelimit_provider.get_local_rate_limits(
-                scope, action, target_type_uri
-            )
-
-            # Don't rate limit for rate_limit=-1 or if unknown.
-            if common.is_unlimited(local_rate_limit):
-                self.logger.debug(
-                    "no local rate limits configured or unlimited for request '{0} {1}' in scope '{3}'".format(
-                        action, target_type_uri, scope
-                    )
-                )
-                return
-
-            # Check local (for a specific scope) rate limits.
-            rate_limit_response = self.backend.rate_limit(
-                scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
-            )
-            if rate_limit_response:
-                resp = rate_limit_response
-                self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
-                return
-
-            self.metricsClient.close_buffer()
+            r = self._rate_limit(scope, action, target_type_uri)
+            if r:
+                resp = r
 
         except Exception as e:
             self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
 
         finally:
+            self.metricsClient.close_buffer()
             return resp(environ, start_response)
 
     def is_scope_blacklisted(self, key_to_check):

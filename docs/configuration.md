@@ -21,8 +21,8 @@ Rate limits can be enforced on 2 levels: Global and local.
 
 Rate limits can be configured via a *configuration file* and/or via [*Limes*](https://github.com/sapcc/limes). 
 The configuration file can only be used to specify global rate limits and defaults for local rate limits.
-See the [examples](../etc/) for more details.  
-If scope (project, domain) specific rate limits are required, they have to be set via Limes.  
+If scope (project, domain) specific rate limits are required, they have to be set via Limes. 
+See the [examples](../etc/) for more details.    
 
 The syntax for minimal configuration of rate limits is described below.
 ```yaml
@@ -39,47 +39,69 @@ rates:
 
 The following parameters are provided via the WSGI configuration:
 ```yaml
-# the service type according to CADF specification
-service_type:     <type>
+# The service type according to CADF specification.
+service_type:     <string>
 
-# path to the configuration file
-config_file:      <path>
+# Path to the configuration file.
+config_file:      <string>
 
-# if this middleware enforces rate limits in multiple replicas of an API,
-# the clock accuracy of the individual replicas can be configured as follows
+# If this middleware enforces rate limits in multiple replicas of an API,
+# the clock accuracy of the individual replicas can be configured as follows.
 clock_accuracy:   <n><unit> (default 1ms)
 
-# per default rate limits are applied based on `initiator_project_id`
-# however, this can also be se to `initiator_host_address` or `target_project_id`
-rate_limit_by:    <rate_limit_by>
+# Per default rate limits are applied based on `initiator_project_id`.
+# However, this can also be se to `initiator_host_address` or `target_project_id`.
+rate_limit_by:    <string>
 
-# Emit Prometheus metrics via StatsD
-# address of the StatsD exporter
-statsd_host:      <host> (default: 127.0.0.1)
+# Emit Prometheus metrics via StatsD.
+# Host of the StatsD exporter.
+statsd_host:      <string> (default: 127.0.0.1)
 
-# port of the StatsD exporter
-statsd_port:      <port> (default: 9125)
+# Port of the StatsD exporter.
+statsd_port:      <int> (default: 9125)
 
-# prefix to apply to all metrics provided by this middleware
-statsd_prefix:    <prefix> (default: openstack_ratelimit_middleware)
+# Prefix to apply to all metrics provided by this middleware.
+statsd_prefix:    <string> (default: openstack_ratelimit_middleware)
 
-# MemCache is used to store count of requests and cache rate limits from limes
-memcache_host:    <host> (default: 127.0.0.1)
+# The backend used to store number of requests.
+# Choose between redis, memcache.
+backend:          <string> (default: redis)
 
-# Rate limits can be configured in Limes
-limes_enabled:    <enabled bool> (default: false)
-# Credentials of the OpenStack service user able to read rate limits from Limes
-auth_url:         <keystone auth endpoint >
-username:         <service username>
-user_domain_name: <domain of the service user>
-password:         <password of the service user>
-domain_name:      <domain name>
+# Host for backend.
+backend_host:     <string> (default: 127.0.0.1)
+
+# Port for backend.
+backend_port:     <int> (default: 6379)
+
+## Limes configuration.
+# Rate limits con be provided via Limes.
+limes_enabled:    <bool> (default: false)
+# Credentials of the OpenStack service user able to read rate limits from Limes.
+auth_url:         <string>
+username:         <string>
+user_domain_name: <string>
+password:         <string>
+domain_name:      <string>
 ```
 
-## Configuration file
+## Black- & Whitelist
 
-Examples are provided [here](../etc/).
-The following parameters are provided via the configuration file:
+This middleware allows black- and whitelist certain scopes via configuration file.
+Also see the [examples](../etc/).  
+
+```yaml
+# List of blacklisted projects by uid.
+blacklist:
+    - <project_id>
+    - <project_id>
+
+# List of whitelisted projects by uid.
+whitelist:
+    - <project_id>
+    - <project_id>
+```
+
+Furthermore, the blacklist and rate limit responses can be configured as shown below.   
 ```yaml
 # customize rate limit response
 rate_limit_response:
@@ -102,22 +124,4 @@ blacklist_response:
   content_type: "application/json"
   # specify either body or json_body
   json_body: {"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}
-
-# list of blacklisted projects by uid
-blacklist:
-    - <project_id>
-    - <project_id>
-
-# list of whitlisted projects by uid
-whitelist:
-    - <project_id>
-    - <project_id>
-
-rates:
-    <level>:
-        <target_type_uri>:
-            - action:   <action type>
-              # limit to n requests per m <unit> 
-              # valid interval units are `s, m, h, d`.
-              limit:    <n>r/<m><t>
 ```
