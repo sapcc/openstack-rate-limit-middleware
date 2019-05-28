@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -105,4 +106,4 @@ ENV/
 *debugserver.py
 tools/Dockerfile
 tools/create_image.sh
-tools/*.gz
+tools/*gz
