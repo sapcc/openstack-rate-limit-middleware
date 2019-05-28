@@ -60,7 +60,17 @@ class RedisBackend(Backend):
             logger=logger,
             kwargs=kwargs
         )
+        self.__host = host
+        self.__port = port
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
+
+    def __is_redis_available(self):
+        try:
+            redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
+            redis_client.get(None)
+        except redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError:
+            return False
+        return True
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
         """
@@ -73,6 +83,12 @@ class RedisBackend(Backend):
         :param max_rate_string: the max. rate limit per sliding window
         :return: the configured RateLimitResponse or None
         """
+        if not self.__is_redis_available():
+            self.logger.warning(
+                "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
+            )
+            return None
+
         try:
             key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
             max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
@@ -82,6 +98,7 @@ class RedisBackend(Backend):
             return self.__rate_limit(key, sliding_window_seconds, max_rate)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
+        return self.__rate_limit(key, sliding_window_seconds, max_rate)
 
     def __rate_limit(self, key, window_seconds, max_calls):
         now = time.time()
@@ -97,8 +114,8 @@ class RedisBackend(Backend):
         pipe.zremrangebyrank(key, 0, lookback_seconds)
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
-        # Add current API call.
-        pipe.zadd(key, now, now)
+        # Add current API call with timestamp.
+        pipe.zadd(key, int(now), (now))
         # Reset expiry date.
         pipe.expire(key, window_seconds)
         # Execute the transaction block.

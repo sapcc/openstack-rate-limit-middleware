@@ -50,7 +50,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             self.app.is_scope_whitelisted("abcdef")
         )
 
-    def test_is_scope_blacklited(self):
+    def test_is_scope_blacklisted(self):
         self.assertTrue(
             self.app.is_scope_blacklisted("abcdef1233456789")
         )
@@ -117,6 +117,13 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
                 expected_ratelimit,
                 "rate limit for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_ratelimit, rate_limit)
             )
+
+    def test_is_ratelimited(self):
+        scope = '123456'
+        action = 'update'
+        target_type_uri = 'account/container'
+
+        response = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
 
 
 if __name__ == '__main__':
