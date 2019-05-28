@@ -65,6 +65,11 @@ class RedisBackend(Backend):
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
     def __is_redis_available(self):
+        """
+        Test whether redis backend is available.
+
+        :return: bool
+        """
         try:
             redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
             redis_client.get(None)
@@ -115,7 +120,7 @@ class RedisBackend(Backend):
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
         # Add current API call with timestamp.
-        pipe.zadd(key, int(now), (now))
+        pipe.zadd(key, int(now), int(now))
         # Reset expiry date.
         pipe.expire(key, window_seconds)
         # Execute the transaction block.

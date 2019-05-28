@@ -124,6 +124,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         target_type_uri = 'account/container'
 
         response = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
+        print response
 
 
 if __name__ == '__main__':
