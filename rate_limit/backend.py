@@ -72,8 +72,10 @@ class RedisBackend(Backend):
         """
         try:
             redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
-            redis_client.get(None)
-        except redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError:
+            # Invoke get to test redis connection.
+            # Will return None or one of the following exceptions.
+            redis_client.get("")
+        except (redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError):
             return False
         return True
 
@@ -113,20 +115,20 @@ class RedisBackend(Backend):
         redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
 
         # See https://engagor.github.io/blog/2017/05/02/sliding-window-rate-limiter-redis.
-        # Create a transaction block (aka pipeline) to queue multiple commands for later execution.
+        # Increase performance by using a pipeline to buffer multiple commands to the redis backend in a single request.
         pipe = redis_client.pipeline()
-        # Clean out API calls that were done before the window.
-        pipe.zremrangebyrank(key, 0, lookback_seconds)
+        # Remove all previous API calls that are older than the sliding window.
+        pipe.zremrangebyrank(key, 0, int(lookback_seconds))
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
         # Add current API call with timestamp.
-        pipe.zadd(key, int(now), int(now))
-        # Reset expiry date.
-        pipe.expire(key, window_seconds)
+        pipe.zadd(key, {int(now): int(now)})
+        # Reset expiry time for key.
+        pipe.expire(key, int(window_seconds))
         # Execute the transaction block.
         result = pipe.execute()
 
-        # Check whether the rate limit is exhausted.
+        # Check whether rate limit is exhausted.
         timestamps = result[1]
         remaining = max(0, max_calls - len(timestamps))
         if remaining > 0:
