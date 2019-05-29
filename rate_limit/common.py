@@ -32,9 +32,6 @@ CADF_SERVICE_TYPE_PREFIX_MAP = {
 
 
 class Constants(object):
-    """
-    Shared constants, primarily used to parse the configuration.
-    """
     ratelimit_response = 'ratelimit_response'
     blacklist_response = 'blacklist_response'
     max_sleep_time_seconds = 'max_sleep_time_seconds'
@@ -52,6 +49,19 @@ class Constants(object):
 
     backend_redis = 'redis'
     backend_memcache = 'memcache'
+
+    # The limit for the current request in the format <n>r/<m><t>.
+    # Read: Limit to n requests per m <unit>. Valid interval units are `s, m, h, d`.
+    header_ratelimit_limit = 'X-RateLimit-Limit'
+
+    # The number of remaining requests within the current window.
+    header_ratelimit_remaining = 'X-RateLimit-Remaining'
+
+    # The remaining window before the rate limit resets in seconds.
+    header_ratelimit_reset = 'X-RateLimit-Retry-After'
+
+    # For compatibility with OpenStack Swift. Same as 'header_ratelimit_reset'.
+    header_ratelimit_retry_after = 'X-Retry-After'
 
 
 def key_func(scope, action, target_type_uri):

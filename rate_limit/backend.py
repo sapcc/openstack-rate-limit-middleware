@@ -105,9 +105,9 @@ class RedisBackend(Backend):
             return self.__rate_limit(key, sliding_window_seconds, max_rate)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
-        return self.__rate_limit(key, sliding_window_seconds, max_rate)
+        return self.__rate_limit(key, sliding_window_seconds, max_rate,max_rate_string)
 
-    def __rate_limit(self, key, window_seconds, max_calls):
+    def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         now = time.time()
         lookback_seconds = now - window_seconds
 
@@ -134,8 +134,11 @@ class RedisBackend(Backend):
         if remaining > 0:
             pass
         else:
-            # set RETRY-AFTER and always round up
-            self.__rate_limit_response.set_retry_after(math.ceil(timestamps[0] + window_seconds - now))
+            self.__rate_limit_response.set_headers(
+                max_rate_string,
+                remaining,
+                math.ceil(timestamps[0] + window_seconds - now)
+            )
             return self.__rate_limit_response
 
 
@@ -173,12 +176,12 @@ class MemcachedBackend(Backend):
             self.logger.debug(
                 "checking rate limit for request '{0} {1}' in scope {2}".format(action, target_type_uri, scope)
             )
-            return self.__rate_limit(key, sliding_window_seconds, max_rate)
+            return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
         except Exception as e:
             self.logger.error('MemcacheConnectionError: {0}'.format(e))
             return 0
 
-    def __rate_limit(self, key, window_seconds, max_calls):
+    def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         now = time.time()
 
         # get list of requests that hit the api
@@ -187,14 +190,16 @@ class MemcachedBackend(Backend):
             hit_list = []
         hit_list = self.__get_hits_in_current_window(hit_list, now - window_seconds)
 
-        rate_limit_reached = len(hit_list) + 1 > max_calls
+        num_req = len(hit_list) + 1
+        rate_limit_reached = num_req > max_calls
         if rate_limit_reached:
             self.logger.debug(
                 'rate limit reached key: {0}, max_rate: {1}, window_seconds: {2}'
                 .format(key, max_calls, window_seconds)
             )
-            # Set RETRY-AFTER header and always round up.
-            self.__rate_limit_response.set_retry_after(
+            self.__rate_limit_response.set_headers(
+                max_rate_string,
+                max_calls - num_req,
                 math.ceil(hit_list[0] + window_seconds - now)
             )
             return self.__rate_limit_response

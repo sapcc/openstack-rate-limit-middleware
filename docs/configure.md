@@ -1,5 +1,5 @@
-Configuration
-=============
+Middleware configuration
+------------------------
 
 This sections provides an overview of the configurable options via WSGI config and configuration file.
 
@@ -35,58 +35,10 @@ rates:
               limit:    <n>r/<m><t>
 ```
 
-## WSGI configuration
-
-The following parameters are provided via the WSGI configuration:
-```yaml
-# The service type according to CADF specification.
-service_type:     <string>
-
-# Path to the configuration file.
-config_file:      <string>
-
-# If this middleware enforces rate limits in multiple replicas of an API,
-# the clock accuracy of the individual replicas can be configured as follows.
-clock_accuracy:   <n><unit> (default 1ms)
-
-# Per default rate limits are applied based on `initiator_project_id`.
-# However, this can also be se to `initiator_host_address` or `target_project_id`.
-rate_limit_by:    <string>
-
-# Emit Prometheus metrics via StatsD.
-# Host of the StatsD exporter.
-statsd_host:      <string> (default: 127.0.0.1)
-
-# Port of the StatsD exporter.
-statsd_port:      <int> (default: 9125)
-
-# Prefix to apply to all metrics provided by this middleware.
-statsd_prefix:    <string> (default: openstack_ratelimit_middleware)
-
-# The backend used to store number of requests.
-# Choose between redis, memcache.
-backend:          <string> (default: redis)
-
-# Host for backend.
-backend_host:     <string> (default: 127.0.0.1)
-
-# Port for backend.
-backend_port:     <int> (default: 6379)
-
-## Limes configuration.
-# Rate limits con be provided via Limes.
-limes_enabled:    <bool> (default: false)
-# Credentials of the OpenStack service user able to read rate limits from Limes.
-auth_url:         <string>
-username:         <string>
-user_domain_name: <string>
-password:         <string>
-domain_name:      <string>
-```
 
 ## Black- & Whitelist
 
-This middleware allows black- and whitelist certain scopes via configuration file.
+This middleware allows configuring a black- and whitelist for certain scopes as show below.
 Also see the [examples](../etc/).  
 
 ```yaml
@@ -125,3 +77,33 @@ blacklist_response:
   # specify either body or json_body
   json_body: {"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}
 ```
+
+## Example configuration
+
+Rate limits can be configured via a configuration file and/or via [Limes](https://github.com/sapcc/limes).  
+The following snippet illustrates how global rate limits for each project are defined via the configuration file.  
+More information is provided in the [configuration section](./docs/configuration.md).
+
+Example for Swift (object-store):
+```yaml
+rates:
+  # global rate limits. counted across all projects
+  global:
+    account/container:
+      # limit container updates to 100 requests per second
+      - action: update  
+        limit: 100r/s
+      # limit container creations to 100 requests per second
+      - action: create 
+        limit: 100r/s
+  
+  # default local rate limits. counted per project
+  default:
+    account/container:
+      # limit container updates to 10 requests per minute
+      - action: update  
+        limit: 10r/m
+      # limit container creations to 5 requests every 10 minutes
+      - action: create 
+        limit: 5r/10m
+``` 

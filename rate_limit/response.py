@@ -16,6 +16,8 @@ import json
 import six
 from webob import Response
 
+from . import common
+
 
 def response_parameters_from_config(response_config):
     """
@@ -62,15 +64,21 @@ class RateLimitExceededResponse(Response):
             json_body=json.dumps(json_body), charset="UTF-8",
         )
 
-    def set_retry_after(self, retry_after):
+    def set_headers(self, ratelimit, remaining, retry_after):
         """
-        Set the Retry-After header.
+        Set response headers.
 
-        :param retry_after: the duration in seconds
+        :param ratelimit: the limit for the current request in the format <n>r/<m><t>
+        :param remaining: the number of remaining requests within the current window
+        :param retry_after: the remaining window before the rate limit resets in seconds
         """
         if not self.headerlist:
             self.headerlist = []
-        self.headerlist.append(('Retry-After', int(retry_after)))
+
+        self.headerlist.append((common.Constants.header_ratelimit_retry_after, int(retry_after)))
+        self.headerlist.append((common.Constants.header_ratelimit_reset, int(retry_after)))
+        self.headerlist.append((common.Constants.header_ratelimit_limit, str(ratelimit)))
+        self.headerlist.append((common.Constants.header_ratelimit_remaining, int(remaining)))
 
 
 class BlacklistResponse(Response):
