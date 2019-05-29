@@ -1,6 +1,9 @@
 sudo: false
 language: python
 
+services:
+  - redis-server
+
 matrix:
   include:
     - python: 2.7

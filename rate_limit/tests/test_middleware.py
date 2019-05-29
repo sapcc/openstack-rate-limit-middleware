@@ -15,6 +15,7 @@
 import unittest
 import os
 import json
+import time
 
 from rate_limit import OpenStackRateLimitMiddleware
 from . import fake
@@ -123,8 +124,9 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         action = 'update'
         target_type_uri = 'account/container'
 
-        response = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
-        print response
+        for i in range(0,4):
+            print i, " ", self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
+            time.sleep(1)
 
 
 if __name__ == '__main__':

@@ -18,6 +18,8 @@ import memcache
 import redis
 import time
 
+from distutils.version import StrictVersion
+
 from . import common
 from .units import Units
 
@@ -62,6 +64,7 @@ class RedisBackend(Backend):
         )
         self.__host = host
         self.__port = port
+        self.__rate_limit_response = rate_limit_response
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
     def __is_redis_available(self):
@@ -79,6 +82,19 @@ class RedisBackend(Backend):
             return False
         return True
 
+    def __is_redis_version_supported(self):
+        """
+        Check whether the redis version is supported by this middleware.
+        We require at least redis version 3.0.0 .
+
+        :return: bool
+        """
+        redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
+        version = redis_client.info().get('redis_version', None)
+        if not version:
+            return False
+        return bool(StrictVersion(version) >= StrictVersion('3.0.0'))
+
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
         """
         Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
@@ -95,6 +111,11 @@ class RedisBackend(Backend):
                 "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
             )
             return None
+        elif not self.__is_redis_version_supported():
+            self.logger.warning(
+                "redis version not supported. need at least redis 3.0.0"
+            )
+            return None
 
         try:
             key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
@@ -105,20 +126,17 @@ class RedisBackend(Backend):
             return self.__rate_limit(key, sliding_window_seconds, max_rate)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
-        return self.__rate_limit(key, sliding_window_seconds, max_rate,max_rate_string)
+        return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
 
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         now = time.time()
         lookback_seconds = now - window_seconds
 
-        # Create a new RedisClient using the ConnectionPool.
-        redis_client = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True)
-
         # See https://engagor.github.io/blog/2017/05/02/sliding-window-rate-limiter-redis.
         # Increase performance by using a pipeline to buffer multiple commands to the redis backend in a single request.
-        pipe = redis_client.pipeline()
-        # Remove all previous API calls that are older than the sliding window.
-        pipe.zremrangebyrank(key, 0, int(lookback_seconds))
+        pipe = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True).pipeline()
+        # Remove all API calls that are older than the sliding window.
+        pipe.zremrangebyscore(key, '-inf', lookback_seconds)
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
         # Add current API call with timestamp.
@@ -129,15 +147,16 @@ class RedisBackend(Backend):
         result = pipe.execute()
 
         # Check whether rate limit is exhausted.
-        timestamps = result[1]
+        timestamps = result[1] or []
         remaining = max(0, max_calls - len(timestamps))
+
         if remaining > 0:
             return None
         else:
             self.__rate_limit_response.set_headers(
                 max_rate_string,
                 remaining,
-                math.ceil(timestamps[0] + window_seconds - now)
+                math.ceil(int(timestamps[0]) + int(window_seconds) - int(now))
             )
             return self.__rate_limit_response
 
@@ -154,6 +173,9 @@ class MemcachedBackend(Backend):
             logger=logger,
             kwargs=kwargs
         )
+        self.__host = host
+        self.__port = port
+        self.__rate_limit_response = rate_limit_response
         self.__memcached = memcache.Client(
             servers=[host],
             debug=1
