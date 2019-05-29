@@ -49,7 +49,7 @@ All metrics come with the following labels:
 
 | Label name      | Description |
 |-----------------|-------------|
-| service         | The type of the OpenStack service. |
+| service         | The service type according to CADF specification. |
 | service_name    | The name of the OpenStack service. |
 | action          | The CADF action of the request. |
 | scope           | The scope of the request. |
