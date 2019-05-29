@@ -61,7 +61,7 @@ class RateLimitExceededResponse(Response):
             json_body = {"error": {"status": status, "message": "Too Many Requests"}}
         super(RateLimitExceededResponse, self).__init__(
             status=status, headerlist=headers, content_type=content_type,
-            json_body=json.dumps(json_body), charset="UTF-8",
+            json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8",
         )
 
     def set_headers(self, ratelimit, remaining, retry_after):
@@ -107,5 +107,5 @@ class BlacklistResponse(Response):
             json_body = {"error": {"status": status, "message": "You have been blacklisted"}}
         super(BlacklistResponse, self).__init__(
             status=status, headerlist=headers, content_type=content_type,
-            json_body=json.dumps(json_body), charset="UTF-8"
+            json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8"
         )

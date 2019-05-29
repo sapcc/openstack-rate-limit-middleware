@@ -132,7 +132,7 @@ class RedisBackend(Backend):
         timestamps = result[1]
         remaining = max(0, max_calls - len(timestamps))
         if remaining > 0:
-            pass
+            return None
         else:
             self.__rate_limit_response.set_headers(
                 max_rate_string,
