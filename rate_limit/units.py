@@ -19,9 +19,8 @@ from enum import Enum
 
 
 class Units(Enum):
-    """
-    defines the units that can be used to rate limit requests
-    """
+    """Defines the units that can be used to rate limit requests."""
+
     MILLISECOND = 'ms'
     SECOND = 's'
     MINUTE = 'm'
@@ -46,7 +45,7 @@ class Units(Enum):
     @staticmethod
     def parse_and_convert_to_per_seconds(value_string, decimal_places=4):
         """
-        parses value_string like '1r/s' and returns 1
+        Parse value_string like '1r/s' and returns 1.
 
         :param value_string: rate limit as string
         :param decimal_places: precision of the result
@@ -69,7 +68,7 @@ class Units(Enum):
     @staticmethod
     def parse_sliding_window_rate_limit(value_string):
         """
-        Parses sliding window rate limit definition
+        Parse sliding window rate limit definition.
 
         Example:
         (a) 2r/m  => 2, 60
@@ -88,7 +87,7 @@ class Units(Enum):
     @staticmethod
     def parse(value_string):
         """
-        parses value_string like '1m' and returns value in seconds
+        Parse value_string like '1m' and returns value in seconds.
 
         :param value_string: the value string to parse
         :return: the value in seconds

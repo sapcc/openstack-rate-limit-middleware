@@ -66,7 +66,7 @@ class Constants(object):
 
 def key_func(scope, action, target_type_uri):
     """
-    Creates the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'.
+    Create the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'.
     If no scope is given (scope=None), the scope is global (global, non-project specific rate limits).
 
     :param scope: the identifier of the scope (project uid, user uid, ip addr, ..) or 'global'

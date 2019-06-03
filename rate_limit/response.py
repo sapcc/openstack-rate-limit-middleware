@@ -21,7 +21,7 @@ from . import common
 
 def response_parameters_from_config(response_config):
     """
-    get custom response from configuration
+    Get custom response from configuration.
 
     :param response_config: the configuration of the response
     :return: code, headers, content_type, body, json_body
@@ -36,12 +36,11 @@ def response_parameters_from_config(response_config):
 
 
 class RateLimitExceededResponse(Response):
-    """
-    Defines the rate limit response and defaults, which can be overwritten via configuration.
-    """
+    """The rate limit response and defaults, which can be overwritten via configuration."""
+
     def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
         """
-        Creates a new RateLimitExceededResponse with either a body or json_body.
+        Create a new RateLimitExceededResponse with either a body or json_body.
 
         :param status: the status code
         :param headerlist: list of header tuples
@@ -83,12 +82,11 @@ class RateLimitExceededResponse(Response):
 
 
 class BlacklistResponse(Response):
-    """
-    defines the blacklist response and defaults, which can be overwritten via configuration.
-    """
+    """The blacklist response and defaults, which can be overwritten via configuration."""
+
     def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
         """
-        creates a new BlacklistResponse with either a body or json_body
+        Create a new BlacklistResponse with either a body or json_body.
 
         :param status: the status code
         :param headerlist: list of header dictionaries

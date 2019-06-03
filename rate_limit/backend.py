@@ -27,9 +27,8 @@ logging.basicConfig(format='%(asctime)-15s %(message)s')
 
 
 class Backend(object):
-    """
-    Backend for storing rate limits.
-    """
+    """Backend for storing rate limits."""
+
     def __init__(self, host, port, rate_limit_response, logger, **kwargs):
         self.__host = host
         self.__port = port
@@ -51,9 +50,8 @@ class Backend(object):
 
 
 class RedisBackend(Backend):
-    """
-    Redis backend for storing rate limits.
-    """
+    """Redis backend for storing rate limits."""
+
     def __init__(self, host, port, rate_limit_response, logger, **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
@@ -170,9 +168,8 @@ class RedisBackend(Backend):
 
 
 class MemcachedBackend(Backend):
-    """
-    Memcached backend for storing rate limits.
-    """
+    """Memcached backend for storing rate limits."""
+
     def __init__(self, host, port, rate_limit_response, logger, **kwargs):
         super(MemcachedBackend, self).__init__(
             host=host,
@@ -239,7 +236,7 @@ class MemcachedBackend(Backend):
 
     def key_with_time_window(self, scope, action, target_type_uri, time_window):
         """
-        Returns a key with a time window suffix, e.g. '012314af_create_servers_11-04-2018_13:00:29'.
+        Return a key with a time window suffix, e.g. '012314af_create_servers_11-04-2018_13:00:29'.
 
         :param scope: the scope uid of the request
         :param action: cadf action the request
@@ -253,7 +250,7 @@ class MemcachedBackend(Backend):
     def __get_hits_in_current_window(timestamp_list, not_older_than_timestamp=time.time()):
         """
         Get list of requests (actually their timestamps) that hit the api within the current sliding window.
-        If any left: also expire outdated timestamps
+        If any left: also expire outdated timestamps.
 
         :param timestamp_list: list of timestamps
         :param not_older_than_timestamp: delete items older than this timestamp

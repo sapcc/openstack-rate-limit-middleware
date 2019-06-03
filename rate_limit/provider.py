@@ -25,10 +25,8 @@ from . import common
 
 
 class RateLimitProvider(object):
-    """
-    Interface to obtain rate limits from different sources.
+    """Interface to obtain rate limits from different sources."""
 
-    """
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
@@ -61,10 +59,8 @@ class RateLimitProvider(object):
 
 
 class ConfigurationRateLimitProvider(RateLimitProvider):
-    """
-    The provider to obtain rate limits from a configuration file.
+    """The provider to obtain rate limits from a configuration file."""
 
-    """
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
         super(ConfigurationRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
@@ -72,8 +68,8 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
-        Get the global rate limit per action and target type URI
-        returns -1 if unlimited.
+        Get the global rate limit per action and target type URI.
+        Returns -1 if unlimited.
 
         :param action: the cadf action for the request
         :param target_type_uri: the target type URI of the request
@@ -117,9 +113,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
 
 class LimesRateLimitProvider(RateLimitProvider):
-    """
-    The provider to obtain rate limits from limes.
-    """
+    """The provider to obtain rate limits from limes."""
 
     def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
         super(LimesRateLimitProvider, self).__init__(
@@ -245,7 +239,8 @@ class LimesRateLimitProvider(RateLimitProvider):
 
     def list_ratelimits_for_projects_in_domain(self, project_id, domain_id=None):
         """
-        Query limes for rate limits for projects in a domain
+        Query limes for rate limits for projects in a domain.
+
         :param domain_id: the domain uid
         :param project_id: optional project uid
         :return: dictionary of projects and their rates in the given domain

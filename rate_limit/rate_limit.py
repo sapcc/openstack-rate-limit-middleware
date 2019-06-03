@@ -28,7 +28,9 @@ from .units import Units
 
 class OpenStackRateLimitMiddleware(object):
     """
-    OpenStack Rate Limit Middleware enforces configurable rate limits per combination of
+    OpenStack Rate Limit Middleware enforces configurable rate limits.
+
+    Per combination of:
       service         ( compute, identity, object-store, .. )
       scope           ( initiator|target project uid, initiator host address )
       target_type_uri ( service/compute/servers, service/storage/block/volumes,.. )
@@ -154,10 +156,7 @@ class OpenStackRateLimitMiddleware(object):
                 self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
 
     def _setup_response(self):
-        """
-        Setup configurable RateLimitExceededResponse and BlacklistResponse.
-        """
-
+        """Setup configurable RateLimitExceededResponse and BlacklistResponse."""
         # Default responses.
         ratelimit_response = response.RateLimitExceededResponse()
         blacklist_response = response.BlacklistResponse()
@@ -269,7 +268,6 @@ class OpenStackRateLimitMiddleware(object):
         :param environ: the WSGI environment dict
         :param start_response: WSGI callable
         """
-
         # Save the app's response so it can be returned easily.
         resp = self.app
 
