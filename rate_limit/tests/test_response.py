@@ -54,10 +54,10 @@ class TestResponse(unittest.TestCase):
             .format(ratelimit_response.status)
         )
         self.assertEqual(
-            ratelimit_response.body,
+            ratelimit_response.body.decode('utf-8'),
             'Rate Limit Exceeded',
             "expected ratelimit response body 'Rate Limit Exceeded' but got '{0}'"
-            .format(ratelimit_response.status)
+            .format(ratelimit_response.body)
         )
 
         h = ratelimit_response.headers.get('X-FOO', None)
