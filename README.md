@@ -18,6 +18,8 @@ The [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-mi
 based on the [DMTF CADF specification](https://www.dmtf.org/standards/cadf).
 In terms of rate limiting, a request to an OpenStack service can be described by an *action*, *target type URI* and its *scope*.
 
+Moreover, Redis >= 3.0.0 is required to store rate limits.
+
 ## Documentation
 
 - [Installation & WSGI configuration](./docs/install.md)

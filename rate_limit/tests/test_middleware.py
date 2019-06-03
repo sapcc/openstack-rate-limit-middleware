@@ -18,6 +18,7 @@ import json
 import time
 
 from rate_limit import OpenStackRateLimitMiddleware
+from rate_limit.response import RateLimitExceededResponse, BlacklistResponse
 from . import fake
 
 
@@ -64,14 +65,18 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             self.app.ratelimit_response.status_code,
             498
         )
-        self.assertEqual(
-            self.app.ratelimit_response.headerlist,
-            [('X-Foo', 'RateLimitFoo'), ('Content-Length', '19')]
-        )
+
+        expected_header = ('X-Foo', 'RateLimitFoo')
+        is_present, msg = headerlist_contains(self.app.ratelimit_response.headerlist, expected_header)
+        self.assertTrue(is_present, msg)
+
         # body is a bytes literal which is ignored by py2, but not py3
+        expected_body = "Rate Limit Exceeded"
+        got_body = str(self.app.ratelimit_response.body).lstrip("b'").rstrip("'")
         self.assertEqual(
-            str(self.app.ratelimit_response.body).lstrip("b'").rstrip("'"),
-            'Rate Limit Exceeded'
+            expected_body,
+            got_body,
+            "expected body '{0}' but got '{1}'".format(expected_body, got_body)
         )
 
     def test_blacklist_response_from_config(self):
@@ -82,10 +87,6 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         self.assertEqual(
             self.app.blacklist_response.headerlist,
             [('X-Foo', 'Bar'), ('Content-Length', '127')]
-        )
-        self.assertEqual(
-            str(self.app.blacklist_response.json_body),
-            json.dumps({"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}})
         )
 
     def test_get_rate_limit(self):
@@ -119,14 +120,65 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
                 "rate limit for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_ratelimit, rate_limit)
             )
 
-    def test_is_ratelimited(self):
+    def test_is_ratelimited_swift_local_container_update(self):
         scope = '123456'
         action = 'update'
         target_type_uri = 'account/container'
 
-        for i in range(0,4):
-            print i, " ", self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
+        # The current configuration as per /fixtures/swift.yaml allows 2r/m for target type URI account/container and action update.
+        # Thus the first 2 requests should not be rate limited but the 3rd one.
+        expected = [
+            # 1st requests not rate limited.
+            None,
+            # 2nd request also not rate limited.
+            None,
+            # 3rd request should be a rate limit response
+            RateLimitExceededResponse(
+                status='498 Rate Limited',
+                body='Rate Limit Exceeded',
+                headerlist=[('X-Retry-After', 58), ('X-RateLimit-Retry-After', 58),
+                                        ('X-RateLimit-Limit', '2r/m'), ('X-RateLimit-Remaining', 0)]
+            )
+        ]
+
+        for i in range(len(expected)):
+            result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
             time.sleep(1)
+            is_equal, msg = response_equal(expected[i], result)
+            self.assertTrue(is_equal, msg)
+
+
+def response_equal(expected, got):
+    if isinstance(expected, (RateLimitExceededResponse, BlacklistResponse)) \
+            and isinstance(got, (RateLimitExceededResponse, BlacklistResponse)):
+
+        for h in expected.headerlist:
+            if h not in got.headerlist:
+                return False, "expected headers '{0}' but got '{1}'".format(expected.headerlist, got.headerlist)
+
+        if expected.status != got.status:
+            return False, "expected status '{0}' but got '{1}'".format(expected.status, got.status)
+
+        if expected.has_body and expected.body != got.body:
+                return False, "expected body '{0}' but got '{1}'".format(expected.body, got.body)
+
+        if not expected.has_body and expected.json_body != got.json_body:
+                return False, "expected json body '{0}' but got '{1}'".format(expected.json_body, got.json_body)
+
+        return True, "items are equal"
+
+    if type(expected) != type(got):
+        return False, "expected type {0} but got type {1}".format(type(expected), type(got))
+
+    # Compare arguments if neither RateLimitResponse nor BlacklistResponse.
+    return expected == got, "expected '{0}' but got '{1}'".format(expected, got)
+
+
+def headerlist_contains(headerlist, contains_tuple):
+    b = contains_tuple in headerlist
+    if not b:
+        return False, "header '{0}' is missing in '{1}'".format(contains_tuple, headerlist)
+    return True, ""
 
 
 if __name__ == '__main__':

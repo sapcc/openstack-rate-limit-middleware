@@ -1,6 +1,8 @@
-import os
-import unittest
 import json
+import os
+import six
+import unittest
+
 
 from rate_limit import common
 from rate_limit import response
@@ -24,7 +26,9 @@ class TestResponse(unittest.TestCase):
         )
 
         actual_body = sorted(json.loads(ratelimit_response.json_body))
-        expected_body = sorted(json.loads('{"error": {"status": "429 Too Many Requests", "message": "Too Many Requests"}}'))
+        expected_body = sorted(json.loads(
+            '{"error": {"status": "429 Too Many Requests", "message": "Too Many Requests"}}'
+        ))
 
         self.assertEqual(
             actual_body,
@@ -37,7 +41,7 @@ class TestResponse(unittest.TestCase):
 
         ratelimit_response = response.RateLimitExceededResponse(
             status=status,
-            headers=headers,
+            headerlist=headers,
             content_type=content_type,
             body=body,
             json_body=json_body
@@ -75,8 +79,9 @@ class TestResponse(unittest.TestCase):
             "application/json"
         )
         self.assertEqual(
-            str(blacklist_response.json_body),
-            json.dumps({"error": {"status": "497 Blacklisted", "message": "You have been blacklisted"}})
+            blacklist_response.json_body,
+            json.dumps({"error": {"status": "497 Blacklisted", "message": "You have been blacklisted"}}, sort_keys=True),
+            "expected blacklist response body to be equal"
         )
 
 

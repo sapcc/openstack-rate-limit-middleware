@@ -111,7 +111,7 @@ class RedisBackend(Backend):
                 "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
             )
             return None
-        elif not self.__is_redis_version_supported():
+        if not self.__is_redis_version_supported():
             self.logger.warning(
                 "redis version not supported. need at least redis 3.0.0"
             )
@@ -123,14 +123,17 @@ class RedisBackend(Backend):
             self.logger.debug(
                 "checking rate limit for request '{0} {1}' in scope {2}".format(action, target_type_uri, scope)
             )
-            return self.__rate_limit(key, sliding_window_seconds, max_rate)
+            return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
-        return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
 
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         now = time.time()
-        lookback_seconds = now - window_seconds
+        # Convert from float to int with millisecond accuracy.
+        now_int = int(now * 1000)
+        window_seconds_int = int(window_seconds * 1000)
+
+        lookback_seconds = now_int - window_seconds_int
 
         # See https://engagor.github.io/blog/2017/05/02/sliding-window-rate-limiter-redis.
         # Increase performance by using a pipeline to buffer multiple commands to the redis backend in a single request.
@@ -140,23 +143,28 @@ class RedisBackend(Backend):
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
         # Add current API call with timestamp.
-        pipe.zadd(key, {int(now): int(now)})
+        pipe.zadd(key, {now_int: now_int})
         # Reset expiry time for key.
-        pipe.expire(key, int(window_seconds))
+        pipe.expire(key, window_seconds_int)
         # Execute the transaction block.
         result = pipe.execute()
 
-        # Check whether rate limit is exhausted.
-        timestamps = result[1] or []
-        remaining = max(0, max_calls - len(timestamps))
+        if result and len(result) >= 1:
+            timestamps = result[1]
+        else:
+            timestamps = []
 
+        # Check whether rate limit is exhausted.
+        remaining = max(0, max_calls - len(timestamps))
         if remaining > 0:
             return None
         else:
+            timestamp_0 = int(float(timestamps[0]) / 1000)
+
             self.__rate_limit_response.set_headers(
                 max_rate_string,
                 remaining,
-                math.ceil(int(timestamps[0]) + int(window_seconds) - int(now))
+                math.ceil(timestamp_0 + int(window_seconds) - int(now))
             )
             return self.__rate_limit_response
 

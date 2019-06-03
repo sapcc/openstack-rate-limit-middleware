@@ -39,12 +39,12 @@ class RateLimitExceededResponse(Response):
     """
     Defines the rate limit response and defaults, which can be overwritten via configuration.
     """
-    def __init__(self, status=None, headers=None, content_type=None, body=None, json_body=None):
+    def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
         """
         Creates a new RateLimitExceededResponse with either a body or json_body.
 
         :param status: the status code
-        :param headers: list of header dictionaries
+        :param headerlist: list of header tuples
         :param body: the response body
         :param json_body: the response json body
         """
@@ -53,14 +53,15 @@ class RateLimitExceededResponse(Response):
 
         if body:
             super(RateLimitExceededResponse, self).__init__(
-                status=status, headerlist=headers, content_type=content_type, body=body, charset="UTF-8"
+                status=status, headerlist=headerlist, content_type=content_type, body=body, charset="UTF-8"
             )
             return
         elif not json_body:
             content_type = "application/json"
             json_body = {"error": {"status": status, "message": "Too Many Requests"}}
+
         super(RateLimitExceededResponse, self).__init__(
-            status=status, headerlist=headers, content_type=content_type,
+            status=status, headerlist=headerlist, content_type=content_type,
             json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8",
         )
 
@@ -85,12 +86,12 @@ class BlacklistResponse(Response):
     """
     defines the blacklist response and defaults, which can be overwritten via configuration.
     """
-    def __init__(self, status=None, headers=None, content_type=None, body=None, json_body=None):
+    def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
         """
         creates a new BlacklistResponse with either a body or json_body
 
         :param status: the status code
-        :param headers: list of header dictionaries
+        :param headerlist: list of header dictionaries
         :param body: the response body
         :param json_body: the response json body
         """
@@ -99,13 +100,14 @@ class BlacklistResponse(Response):
 
         if body:
             super(BlacklistResponse, self).__init__(
-                status=status, headerlist=headers, content_type=content_type, body=body, charset="UTF-8"
+                status=status, headerlist=headerlist, content_type=content_type, body=body, charset="UTF-8"
             )
             return
         elif not json_body:
             content_type = "application/json"
             json_body = {"error": {"status": status, "message": "You have been blacklisted"}}
+
         super(BlacklistResponse, self).__init__(
-            status=status, headerlist=headers, content_type=content_type,
+            status=status, headerlist=headerlist, content_type=content_type,
             json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8"
         )
