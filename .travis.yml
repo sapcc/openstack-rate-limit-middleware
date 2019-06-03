@@ -17,6 +17,7 @@ matrix:
       sudo: true
       env: TOXENV=py37
     - env: TOXENV=pep8
+      python: 3.5
 
 install:
   pip install tox-travis
