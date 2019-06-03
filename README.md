@@ -19,7 +19,7 @@ based on the [DMTF CADF specification](https://www.dmtf.org/standards/cadf).
 In terms of rate limiting, a request to an OpenStack service can be described by an *action*, *target type URI* and its *scope*.
 
 Moreover, this middleware uses a backend to store rate limits.  
-Thus either `Redis >= 3.0.0` (preferred) or `Memcached >= 1.5.12` is required.
+Thus either `Redis >= 5.0.0` (preferred) or `Memcached >= 1.5.12` is required.
 
 ## Documentation
 
