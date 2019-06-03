@@ -47,7 +47,7 @@ class Backend(object):
         :param max_rate_string: the max. rate limit per sliding window
         :return: the configured RateLimitResponse or None
         """
-        raise NotImplementedError
+        return None
 
 
 class RedisBackend(Backend):

@@ -45,7 +45,7 @@ class RateLimitProvider(object):
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 if not set
         """
-        raise NotImplementedError
+        return -1
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -57,7 +57,7 @@ class RateLimitProvider(object):
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
         """
-        raise NotImplementedError
+        return -1
 
 
 class ConfigurationRateLimitProvider(RateLimitProvider):
