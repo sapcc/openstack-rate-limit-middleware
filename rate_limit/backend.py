@@ -133,7 +133,6 @@ class RedisBackend(Backend):
 
         lookback_seconds = now_int - window_seconds_int
 
-        # See https://engagor.github.io/blog/2017/05/02/sliding-window-rate-limiter-redis.
         # Increase performance by using a pipeline to buffer multiple commands to the redis backend in a single request.
         pipe = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True).pipeline()
         # Remove all API calls that are older than the sliding window.
