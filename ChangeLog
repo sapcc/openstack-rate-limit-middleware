@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* make pep8 happy
+* more purging
 * completely remove oslo\_log
 
 0.0.2
