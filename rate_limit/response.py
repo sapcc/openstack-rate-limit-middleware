@@ -94,7 +94,7 @@ class BlacklistResponse(Response):
     """The blacklist response and defaults, which can be overwritten via configuration."""
 
     def __init__(self, status='497 Blacklisted', status_code=497, headerlist=None,
-                 body=None, json_body=None, environ=None ):
+                 body=None, json_body=None, environ=None):
         """
         Create a new BlacklistResponse with either a body or json_body.
 
