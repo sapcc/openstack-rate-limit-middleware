@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+0.0.2
+-----
+
+* simplify configurable ratelimitresponse and blacklistresponse; set status\_code; adjust tests
+* switch from oslo\_log to logging; copy environ from request to response
 * fix source
 * bump redis requirement
 * update readme

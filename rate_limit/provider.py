@@ -13,21 +13,23 @@
 # under the License.
 
 
+import logging
 import memcache
 import requests
 
-from oslo_log import log
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
 
 from . import common
 
+logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
+
 
 class RateLimitProvider(object):
     """Interface to obtain rate limits from different sources."""
 
-    def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
         self.global_ratelimits = {}
