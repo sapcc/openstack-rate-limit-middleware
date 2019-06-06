@@ -60,35 +60,6 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             self.app.is_scope_blacklisted("abcdef")
         )
 
-    def test_ratelimit_response_from_config(self):
-        self.assertEqual(
-            self.app.ratelimit_response.status_code,
-            498
-        )
-
-        expected_header = ('X-Foo', 'RateLimitFoo')
-        is_present, msg = headerlist_contains(self.app.ratelimit_response.headerlist, expected_header)
-        self.assertTrue(is_present, msg)
-
-        # body is a bytes literal which is ignored by py2, but not py3
-        expected_body = "Rate Limit Exceeded"
-        got_body = str(self.app.ratelimit_response.body).lstrip("b'").rstrip("'")
-        self.assertEqual(
-            expected_body,
-            got_body,
-            "expected body '{0}' but got '{1}'".format(expected_body, got_body)
-        )
-
-    def test_blacklist_response_from_config(self):
-        self.assertEqual(
-            self.app.blacklist_response.status_code,
-            497
-        )
-        self.assertEqual(
-            self.app.blacklist_response.headerlist,
-            [('X-Foo', 'Bar'), ('Content-Length', '127')]
-        )
-
     def test_get_rate_limit(self):
         stimuli = [
             {

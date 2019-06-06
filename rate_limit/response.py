@@ -29,16 +29,16 @@ def response_parameters_from_config(response_config):
     h = response_config.get("headers", {})
     headers = [(k, v) for k, v in six.iteritems(h)]
     status = response_config.get("status", None)
+    status_code = response_config.get("status_code", None)
     body = response_config.get("body", None)
-    content_type = response_config.get("content_type", None)
     json_body = response_config.get("json_body", None)
-    return status, headers, content_type, body, json_body
+    return status, status_code, headers, body, json_body
 
 
 class RateLimitExceededResponse(Response):
     """The rate limit response and defaults, which can be overwritten via configuration."""
 
-    def __init__(self, status='429 Too Many Requests', headerlist=None, content_type=None,
+    def __init__(self, status='429 Too Many Requests', status_code=429, headerlist=None,
                  body=None, json_body=None, environ=None):
         """
         Create a new RateLimitExceededResponse with either a body or json_body.
@@ -49,14 +49,16 @@ class RateLimitExceededResponse(Response):
         :param json_body: the response json body
         :param environ: the environ of the request triggering this response
         """
-        super(RateLimitExceededResponse, self).__init__(
-            status=status, headerlist=headerlist, content_type=content_type, charset="UTF-8"
-        )
+        super(RateLimitExceededResponse, self).__init__(headerlist=headerlist, charset="UTF-8")
 
-        if environ:
-            self.environ = environ
+        self.status_code = status_code
+        self.status = status
+        self.environ = environ
 
         if body:
+            self.content_type = common.Constants.content_type_html
+            if isinstance(body, six.text_type):
+                body = body.encode('utf8')
             self.body = body
             return
 
@@ -91,7 +93,7 @@ class RateLimitExceededResponse(Response):
 class BlacklistResponse(Response):
     """The blacklist response and defaults, which can be overwritten via configuration."""
 
-    def __init__(self, status='497 Blacklisted', headerlist=None, content_type=None,
+    def __init__(self, status='497 Blacklisted', status_code=497, headerlist=None,
                  body=None, json_body=None, environ=None ):
         """
         Create a new BlacklistResponse with either a body or json_body.
@@ -102,14 +104,16 @@ class BlacklistResponse(Response):
         :param json_body: the response json body
         :param request: the request triggering this response
         """
-        super(BlacklistResponse, self).__init__(
-            status=status, headerlist=headerlist, content_type=content_type, charset="UTF-8"
-        )
+        super(BlacklistResponse, self).__init__(headerlist=headerlist, charset="UTF-8")
 
-        if environ:
-            self.environ = environ
+        self.status_code = status_code
+        self.status = status
+        self.environ = environ
 
         if body:
+            self.content_type = common.Constants.content_type_html
+            if isinstance(body, six.text_type):
+                body = body.encode('utf8')
             self.body = body
             return
 

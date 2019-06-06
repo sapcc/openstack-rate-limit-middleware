@@ -3,14 +3,15 @@ ratelimit_response:
   headers:
     X-Foo: RateLimitFoo
   status: 498 Rate Limited
+  status_code: 498
   body: Rate Limit Exceeded
 
 # custom blacklist response
 blacklist_response:
   status: 497 Blacklisted
+  status_code: 497
   headers:
     X-Foo: Bar
-  content_type: "application/json"
   json_body: {"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}
 
 whitelist:

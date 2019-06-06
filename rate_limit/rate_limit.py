@@ -164,22 +164,24 @@ class OpenStackRateLimitMiddleware(object):
         try:
             ratelimit_response_config = self.config.get(common.Constants.ratelimit_response)
             if ratelimit_response_config:
-                status, headers, content_type, body, json_body = \
+                status, status_code, headers, body, json_body = \
                     response.response_parameters_from_config(ratelimit_response_config)
                 # Only create custom response if all parameters are given.
-                if headers and status and (body or json_body):
+                if headers and status and status_code and (body or json_body):
                     ratelimit_response = response.RateLimitExceededResponse(
-                        status, headers, content_type, body, json_body
+                        status=status, status_code=status_code, headerlist=headers, body=body, json_body=json_body
                     )
 
             blacklist_response_config = self.config.get(common.Constants.blacklist_response)
             if blacklist_response_config:
-                status, headers, content_type, body, json_body = \
+                status, status_code, headers, body, json_body = \
                     response.response_parameters_from_config(blacklist_response_config)
 
                 # Only create custom response if all parameters are given.
-                if headers and status and (body or json_body):
-                    blacklist_response = response.BlacklistResponse(status, headers, content_type, body, json_body)
+                if headers and status and status_code and (body or json_body):
+                    blacklist_response = response.BlacklistResponse(
+                        status=status, status_code=status_code, headerlist=headers, body=body, json_body=json_body
+                    )
 
         finally:
             self.ratelimit_response = ratelimit_response
@@ -286,13 +288,17 @@ class OpenStackRateLimitMiddleware(object):
             # Get openstack-watcher-middleware classification from requests environ.
             scope, action, target_type_uri = self.get_scope_action_target_type_uri_from_environ(environ)
 
-            # Don't rate limit if any of scope, action, target type URI is unknown.
+            # Don't rate limit if any of scope, action, target type URI cannot be determined.
             if common.is_none_or_unknown(scope) or \
                common.is_none_or_unknown(action) or \
                common.is_none_or_unknown(target_type_uri):
                 self.logger.debug(
                     "request cannot be handled by rate limit middleware due to missing attributes: "
                     "action: {0}, target_type_uri: {1}, scope: {2}".format(action, target_type_uri, scope)
+                )
+                self.metricsClient.increment(
+                    'requests_unkown_classification',
+                    tags=['service:{0}'.format(self.service_type), 'service_name:{0}'.format(self.cadf_service_name)]
                 )
                 return
 

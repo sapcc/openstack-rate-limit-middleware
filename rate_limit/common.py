@@ -66,6 +66,9 @@ class Constants(object):
     # Response content type.
     content_type_json = "application/json"
 
+    # Reponse content type.
+    content_type_html = "text/html"
+
 
 def key_func(scope, action, target_type_uri):
     """
