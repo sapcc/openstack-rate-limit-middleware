@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* completely remove oslo\_log
+
 0.0.2
 -----
 

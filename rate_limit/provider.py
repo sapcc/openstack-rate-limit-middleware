@@ -63,7 +63,7 @@ class RateLimitProvider(object):
 class ConfigurationRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from a configuration file."""
 
-    def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
         super(ConfigurationRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
         )
@@ -117,7 +117,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 class LimesRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from limes."""
 
-    def __init__(self, service_type, logger=log.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
         super(LimesRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
         )
