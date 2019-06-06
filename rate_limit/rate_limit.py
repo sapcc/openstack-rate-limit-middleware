@@ -166,8 +166,9 @@ class OpenStackRateLimitMiddleware(object):
             if ratelimit_response_config:
                 status, status_code, headers, body, json_body = \
                     response.response_parameters_from_config(ratelimit_response_config)
+
                 # Only create custom response if all parameters are given.
-                if headers and status and status_code and (body or json_body):
+                if status and status_code and (body or json_body):
                     ratelimit_response = response.RateLimitExceededResponse(
                         status=status, status_code=status_code, headerlist=headers, body=body, json_body=json_body
                     )
@@ -178,7 +179,7 @@ class OpenStackRateLimitMiddleware(object):
                     response.response_parameters_from_config(blacklist_response_config)
 
                 # Only create custom response if all parameters are given.
-                if headers and status and status_code and (body or json_body):
+                if status and status_code and (body or json_body):
                     blacklist_response = response.BlacklistResponse(
                         status=status, status_code=status_code, headerlist=headers, body=body, json_body=json_body
                     )

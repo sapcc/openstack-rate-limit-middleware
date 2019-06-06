@@ -77,13 +77,10 @@ class RateLimitExceededResponse(Response):
         :param remaining: the number of remaining requests within the current window
         :param retry_after: the remaining window before the rate limit resets in seconds
         """
-        if not self.headerlist:
-            self.headerlist = []
-
-        self.headerlist.append((common.Constants.header_ratelimit_retry_after, int(retry_after)))
-        self.headerlist.append((common.Constants.header_ratelimit_reset, int(retry_after)))
-        self.headerlist.append((common.Constants.header_ratelimit_limit, str(ratelimit)))
-        self.headerlist.append((common.Constants.header_ratelimit_remaining, int(remaining)))
+        self.headers[common.Constants.header_ratelimit_retry_after] = int(retry_after)
+        self.headers[common.Constants.header_ratelimit_reset] = int(retry_after)
+        self.headers[common.Constants.header_ratelimit_limit] = str(ratelimit)
+        self.headers[common.Constants.header_ratelimit_remaining] = int(remaining)
 
     def set_environ(self, environ):
         """Set the environ of the request triggering this response."""

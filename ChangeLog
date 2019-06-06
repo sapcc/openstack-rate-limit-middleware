@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+* changelog
+
+0.0.3
+-----
+
 * make pep8 happy
 * more purging
 * completely remove oslo\_log
