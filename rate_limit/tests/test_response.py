@@ -22,7 +22,8 @@ class TestResponse(unittest.TestCase):
         )
         self.assertEqual(
             ratelimit_response.content_type,
-            "application/json"
+            common.Constants.content_type_json,
+            "expected response content type to be equal. want '{0}' but got '{1}'".format(common.Constants.content_type_json, ratelimit_response.content_type)
         )
 
         actual_body = sorted(json.loads(ratelimit_response.json_body))
@@ -31,8 +32,9 @@ class TestResponse(unittest.TestCase):
         ))
 
         self.assertEqual(
+            expected_body,
             actual_body,
-            expected_body
+            "expected response bodies to be equal. want '{0}' but got '{1}'".format(expected_body, actual_body)
         )
 
     def test_custom_ratelimitexceededresponse_html(self):

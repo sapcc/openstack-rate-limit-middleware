@@ -38,7 +38,8 @@ def response_parameters_from_config(response_config):
 class RateLimitExceededResponse(Response):
     """The rate limit response and defaults, which can be overwritten via configuration."""
 
-    def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
+    def __init__(self, status='429 Too Many Requests', headerlist=None, content_type=None,
+                 body=None, json_body=None, environ=None):
         """
         Create a new RateLimitExceededResponse with either a body or json_body.
 
@@ -46,23 +47,25 @@ class RateLimitExceededResponse(Response):
         :param headerlist: list of header tuples
         :param body: the response body
         :param json_body: the response json body
+        :param environ: the environ of the request triggering this response
         """
-        if not status:
-            status = '429 Too Many Requests'
+        super(RateLimitExceededResponse, self).__init__(
+            status=status, headerlist=headerlist, content_type=content_type, charset="UTF-8"
+        )
+
+        if environ:
+            self.environ = environ
 
         if body:
-            super(RateLimitExceededResponse, self).__init__(
-                status=status, headerlist=headerlist, content_type=content_type, body=body, charset="UTF-8"
-            )
+            self.body = body
             return
-        elif not json_body:
-            content_type = "application/json"
+
+        # Set a default json body.
+        if not json_body:
             json_body = {"error": {"status": status, "message": "Too Many Requests"}}
 
-        super(RateLimitExceededResponse, self).__init__(
-            status=status, headerlist=headerlist, content_type=content_type,
-            json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8",
-        )
+        self.content_type = common.Constants.content_type_json
+        self.json_body = json.dumps(json_body, sort_keys=True)
 
     def set_headers(self, ratelimit, remaining, retry_after):
         """
@@ -80,11 +83,16 @@ class RateLimitExceededResponse(Response):
         self.headerlist.append((common.Constants.header_ratelimit_limit, str(ratelimit)))
         self.headerlist.append((common.Constants.header_ratelimit_remaining, int(remaining)))
 
+    def set_environ(self, environ):
+        """Set the environ of the request triggering this response."""
+        self.environ = environ
+
 
 class BlacklistResponse(Response):
     """The blacklist response and defaults, which can be overwritten via configuration."""
 
-    def __init__(self, status=None, headerlist=None, content_type=None, body=None, json_body=None):
+    def __init__(self, status='497 Blacklisted', headerlist=None, content_type=None,
+                 body=None, json_body=None, environ=None ):
         """
         Create a new BlacklistResponse with either a body or json_body.
 
@@ -92,20 +100,26 @@ class BlacklistResponse(Response):
         :param headerlist: list of header dictionaries
         :param body: the response body
         :param json_body: the response json body
+        :param request: the request triggering this response
         """
-        if not status:
-            status = '497 Blacklisted'
+        super(BlacklistResponse, self).__init__(
+            status=status, headerlist=headerlist, content_type=content_type, charset="UTF-8"
+        )
+
+        if environ:
+            self.environ = environ
 
         if body:
-            super(BlacklistResponse, self).__init__(
-                status=status, headerlist=headerlist, content_type=content_type, body=body, charset="UTF-8"
-            )
+            self.body = body
             return
-        elif not json_body:
-            content_type = "application/json"
+
+        # Set a default json body.
+        if not json_body:
             json_body = {"error": {"status": status, "message": "You have been blacklisted"}}
 
-        super(BlacklistResponse, self).__init__(
-            status=status, headerlist=headerlist, content_type=content_type,
-            json_body=json.dumps(json_body, sort_keys=True), charset="UTF-8"
-        )
+        self.content_type = common.Constants.content_type_json
+        self.json_body = json.dumps(json_body, sort_keys=True)
+
+    def set_environ(self, environ):
+        """Set the environ of the request triggering this response."""
+        self.environ = environ

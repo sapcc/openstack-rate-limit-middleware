@@ -1,10 +1,31 @@
 CHANGES
 =======
 
-* fix requirements
-* pep8
-* re-add global, local rate limits based on redis. fix tests
-* redis
+* fix source
+* bump redis requirement
+* update readme
+
+0.0.1
+-----
+
+* fix test
+* drop logging
+* already installed
+* more pep8
+* make pep8 happy
+* tox with py3
+* fix NotImplementedError
+* millisecond accuracy; fix tests
+* fix test
+* sorted keys to fix test
+* phrasing
+* adds docs on metrics
+* adds headers; udpates docs
+* gitignore
+* everything's an int
+* it's an int
+* full redis support with tests, docs, minor fixes (#7)
+* redis support (#6)
 * log level info->debug
 * log level info->debug
 * fix default: rate limit by initiator project id

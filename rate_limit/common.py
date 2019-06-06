@@ -63,6 +63,9 @@ class Constants(object):
     # For compatibility with OpenStack Swift. Same as 'header_ratelimit_reset'.
     header_ratelimit_retry_after = 'X-Retry-After'
 
+    # Response content type.
+    content_type_json = "application/json"
+
 
 def key_func(scope, action, target_type_uri):
     """

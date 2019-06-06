@@ -48,6 +48,14 @@ class Backend(object):
         """
         return None
 
+    def is_backend_available(self):
+        """
+        Check whether the backend is available and supported.
+
+        :return: bool
+        """
+        return True
+
 
 class RedisBackend(Backend):
     """Redis backend for storing rate limits."""
@@ -64,6 +72,14 @@ class RedisBackend(Backend):
         self.__port = port
         self.__rate_limit_response = rate_limit_response
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
+
+    def is_backend_available(self):
+        """Check whether the redis is available and supported."""
+        if not self.__is_redis_available():
+            return "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
+        if not self.__is_redis_version_supported():
+            return "redis version not supported. need at least redis 3.0.0"
+        return None
 
     def __is_redis_available(self):
         """
@@ -104,17 +120,6 @@ class RedisBackend(Backend):
         :param max_rate_string: the max. rate limit per sliding window
         :return: the configured RateLimitResponse or None
         """
-        if not self.__is_redis_available():
-            self.logger.warning(
-                "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
-            )
-            return None
-        if not self.__is_redis_version_supported():
-            self.logger.warning(
-                "redis version not supported. need at least redis 3.0.0"
-            )
-            return None
-
         try:
             key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
             max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
@@ -153,17 +158,18 @@ class RedisBackend(Backend):
 
         # Check whether rate limit is exhausted.
         remaining = max(0, max_calls - len(timestamps))
+        # Return here if we still have remaining requests.
         if remaining > 0:
             return None
-        else:
-            timestamp_0 = int(float(timestamps[0]) / 1000)
 
-            self.__rate_limit_response.set_headers(
-                max_rate_string,
-                remaining,
-                math.ceil(timestamp_0 + int(window_seconds) - int(now))
-            )
-            return self.__rate_limit_response
+        # Generate rate limit response if no requests left.
+        timestamp_0 = int(float(timestamps[0]) / 1000)
+        self.__rate_limit_response.set_headers(
+            max_rate_string,
+            remaining,
+            math.ceil(timestamp_0 + int(window_seconds) - int(now))
+        )
+        return self.__rate_limit_response
 
 
 class MemcachedBackend(Backend):
@@ -184,6 +190,11 @@ class MemcachedBackend(Backend):
             servers=[host],
             debug=1
         )
+
+    def is_backend_available(self):
+        if self.__memcached.set("test", 1):
+            return False
+        return True
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
         """

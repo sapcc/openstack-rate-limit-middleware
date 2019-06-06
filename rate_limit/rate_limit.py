@@ -13,10 +13,9 @@
 # under the License.
 
 import os
+import logging
 
 from datadog.dogstatsd import DogStatsd
-from oslo_log import log
-from oslo_config import cfg
 
 from . import backend as rate_limit_backend
 from . import common
@@ -24,6 +23,8 @@ from . import provider
 from . import response
 
 from .units import Units
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
 
 class OpenStackRateLimitMiddleware(object):
@@ -37,9 +38,7 @@ class OpenStackRateLimitMiddleware(object):
       action          ( create, read, update, delete, authenticate, .. )
     """
 
-    def __init__(self, app, wsgi_config, logger=log.getLogger(__name__)):
-        log.register_options(cfg.CONF)
-        log.setup(cfg.CONF, 'openstack_ratelimit_middleware')
+    def __init__(self, app, wsgi_config, logger=logging.getLogger(__name__)):
         self.logger = logger
         self.app = app
         # Configuration via paste.ini.
@@ -196,6 +195,14 @@ class OpenStackRateLimitMiddleware(object):
         return limiter
 
     def _rate_limit(self, scope, action, target_type_uri):
+        """
+        Check the whitelist, blacklist, global and local ratelimits.
+
+        :param scope: the scope of the request
+        :param action: the action of the request
+        :param target_type_uri: the target type URI of the response
+        :return: None or BlacklistResponse or RateLimitResponse
+        """
         metric_labels = [
             'service:{0}'.format(self.service_type),
             'service_name:{0}'.format(self.cadf_service_name),
@@ -214,28 +221,28 @@ class OpenStackRateLimitMiddleware(object):
         if self.is_scope_blacklisted(scope):
             self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
             self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
-            return self.blacklist_response
+            return self.blacklist_response.copy()
 
         # Get global rate limits from the provider.
         global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
             action, target_type_uri
         )
-        # Don't rate limit if limit=-1 or unknown.
-        if common.is_unlimited(global_rate_limit):
-            self.logger.debug(
-                "no global rate limits configured or unlimited for request: '{0} {1}'"
-                .format(action, target_type_uri)
-            )
-            return None
 
-        # Check global rate limits.
-        # Global rate limits enforce a backend protection by counting all requests independent of their scope.
-        rate_limit_response = self.backend.rate_limit(
-            scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
-        )
-        if rate_limit_response:
-            self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
-            return rate_limit_response
+        # Don't rate limit if limit=-1 or unknown.
+        if not common.is_unlimited(global_rate_limit):
+            self.logger.debug(
+                "global rate limit configured for request with action '{0}', target type URI '{1}': '{2}'"
+                .format(action, target_type_uri, global_rate_limit)
+            )
+
+            # Check global rate limits.
+            # Global rate limits enforce a backend protection by counting all requests independent of their scope.
+            rate_limit_response = self.backend.rate_limit(
+                scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
+            )
+            if rate_limit_response:
+                self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
+                return rate_limit_response
 
         # Get local (for a certain scope) rate limits from provider.
         local_rate_limit = self.ratelimit_provider.get_local_rate_limits(
@@ -243,21 +250,19 @@ class OpenStackRateLimitMiddleware(object):
         )
 
         # Don't rate limit for rate_limit=-1 or if unknown.
-        if common.is_unlimited(local_rate_limit):
+        if not common.is_unlimited(local_rate_limit):
             self.logger.debug(
-                "no local rate limits configured or unlimited for request '{0} {1}' in scope '{3}'".format(
-                    action, target_type_uri, scope
-                )
+                "local rate limit configured for request with action '{0}', target type URI '{1}', scope '{2}': '{3}'"
+                .format(action, target_type_uri, scope, local_rate_limit)
             )
-            return None
 
-        # Check local (for a specific scope) rate limits.
-        rate_limit_response = self.backend.rate_limit(
-            scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
-        )
-        if rate_limit_response:
-            self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
-            return rate_limit_response
+            # Check local (for a specific scope) rate limits.
+            rate_limit_response = self.backend.rate_limit(
+                scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
+            )
+            if rate_limit_response:
+                self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
+                return rate_limit_response
 
         return None
 
@@ -291,9 +296,10 @@ class OpenStackRateLimitMiddleware(object):
                 )
                 return
 
-            r = self._rate_limit(scope, action, target_type_uri)
-            if r:
-                resp = r
+            rate_limit_response = self._rate_limit(scope, action, target_type_uri)
+            if rate_limit_response:
+                resp = rate_limit_response
+                resp.set_environ(environ)
 
         except Exception as e:
             self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
