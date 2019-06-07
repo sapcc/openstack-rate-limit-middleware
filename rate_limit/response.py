@@ -80,7 +80,7 @@ class RateLimitExceededResponse(Response):
         self.headers[common.Constants.header_ratelimit_retry_after] = int(retry_after)
         self.headers[common.Constants.header_ratelimit_reset] = int(retry_after)
         self.headers[common.Constants.header_ratelimit_limit] = str(ratelimit)
-        self.headers[common.Constants.header_ratelimit_remaining] = int(remaining)
+        self.headers[common.Constants.header_ratelimit_remaining] = max(0, int(remaining))
 
     def set_environ(self, environ):
         """Set the environ of the request triggering this response."""

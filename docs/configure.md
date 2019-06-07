@@ -38,71 +38,85 @@ rates:
 
 ## Black- & Whitelist
 
-This middleware allows configuring a black- and whitelist for certain scopes as show below.
+This middleware allows configuring a black- and whitelist for certain scopes.
+A scope might be an (initiator/target) project UUID or an initiator host address.   
+If a scope is blacklisted, the middleware immediately returns the configured blacklist response. 
+Requests in a whitelisted scope are not rate limited.  
 Also see the [examples](../etc/).  
 
 ```yaml
-# List of blacklisted projects by uid.
+# List of blacklisted scopes (project UUID, host address).
 blacklist:
-    - <project_id>
-    - <project_id>
+    - <scope>
 
-# List of whitelisted projects by uid.
+# List of whitelisted scoped (project UUID, host address).
 whitelist:
-    - <project_id>
-    - <project_id>
+    - <scope>
 ```
 
-Furthermore, the blacklist and rate limit responses can be configured as shown below.   
-```yaml
-# customize rate limit response
-rate_limit_response:
-  # sett additional headers
-  headers:
-    Foo: Bar
-  # http response status
-  status: 498 Rate Limited
-  # specify either body or json_body
-  # body: 'Rate Limit Exceeded'
-  json_body: '{ "message": "important" }'
+## Customize responses
 
-# custom blacklist response
-blacklist_response:
-  # http response status
-  status: 497 Blacklisted
+The blacklist and rate limit responses can be configured as shown below.  
+A custom response requires the **status**, **status_code** and **body** or **json_body** to be specified.
+```yaml
+rate_limit_response:
+  # HTTP response status string.
+  status: 498 Rate Limited
+  
+  # HTTP response status code.
+  status_code: 498
+  
+  # Specify *either* body or json_body.
+  body:  "<html><body><h1>Rate limit exceeded</h1></body></html>"
+  # json_body: { "message": "rate limit exceeded" }
+  
+  # Optional: Set additional headers.
   headers:
-    X-Foo: Bar
-  # specify content_type
-  content_type: "application/json"
-  # specify either body or json_body
-  json_body: {"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}
+    X-SERVICE: SOMETHING
+
+blacklist_response:
+  # HTTP response status string.
+  status: 497 Blacklisted
+  
+  # HTTP response status code.
+  status_code: 497
+  
+  # Specify *either* body or json_body.
+  body:  "<html><body><h1>You have been blacklisted. Contact an administrator.</h1></body></html>"
+  # json_body: { "message": "You have been blacklisted. Please contact and administrator." }
+  
+  # Optional: Set additional headers.
+  headers:
+    X-SERVICE: SOMETHING
 ```
 
 ## Example configuration
 
-Rate limits can be configured via a configuration file and/or via [Limes](https://github.com/sapcc/limes).  
-The following snippet illustrates how global rate limits for each project are defined via the configuration file.  
+Rate limits can be specified via a configuration file and/or via [Limes](https://github.com/sapcc/limes).  
+The following snippet illustrates how global rate limits per backend and defaults for each project are defined via the configuration file.  
 More information is provided in the [configuration section](./docs/configuration.md).
 
 Example for Swift (object-store):
 ```yaml
 rates:
-  # global rate limits. counted across all projects
+  # Global rate limits. Counted across all projects.
   global:
     account/container:
       # limit container updates to 100 requests per second
       - action: update  
         limit: 100r/s
+
       # limit container creations to 100 requests per second
       - action: create 
         limit: 100r/s
   
-  # default local rate limits. counted per project
+  # Default local rate limits. Counted per project.
   default:
     account/container:
       # limit container updates to 10 requests per minute
       - action: update  
         limit: 10r/m
+        
       # limit container creations to 5 requests every 10 minutes
       - action: create 
         limit: 5r/10m

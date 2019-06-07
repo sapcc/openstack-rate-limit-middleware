@@ -52,9 +52,9 @@ class Backend(object):
         """
         Check whether the backend is available and supported.
 
-        :return: bool
+        :return: bool whether it's available, string describing the error (if any)
         """
-        return True
+        return True, ""
 
 
 class RedisBackend(Backend):
@@ -73,13 +73,13 @@ class RedisBackend(Backend):
         self.__rate_limit_response = rate_limit_response
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
-    def is_backend_available(self):
+    def is_available(self):
         """Check whether the redis is available and supported."""
         if not self.__is_redis_available():
-            return "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
+            return False, "rate limit failed. redis not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
         if not self.__is_redis_version_supported():
-            return "redis version not supported. need at least redis 3.0.0"
-        return None
+            return False, "redis version not supported. need at least redis 3.0.0"
+        return True, ""
 
     def __is_redis_available(self):
         """
@@ -136,12 +136,13 @@ class RedisBackend(Backend):
         now_int = int(now * 1000)
         window_seconds_int = int(window_seconds * 1000)
 
-        lookback_seconds = now_int - window_seconds_int
+        # Max. lookback as timestamp.
+        lookback_time_max = now_int - window_seconds_int
 
         # Increase performance by using a pipeline to buffer multiple commands to the redis backend in a single request.
         pipe = redis.StrictRedis(connection_pool=self.__redis_conn_pool, decode_responses=True).pipeline()
         # Remove all API calls that are older than the sliding window.
-        pipe.zremrangebyscore(key, '-inf', lookback_seconds)
+        pipe.zremrangebyscore(key, '-inf', lookback_time_max)
         # List of API calls during sliding window.
         pipe.zrange(key, 0, -1)
         # Add current API call with timestamp.
@@ -151,13 +152,13 @@ class RedisBackend(Backend):
         # Execute the transaction block.
         result = pipe.execute()
 
+        timestamps = []
         if result and len(result) >= 1:
             timestamps = result[1]
-        else:
-            timestamps = []
 
         # Check whether rate limit is exhausted.
-        remaining = max(0, max_calls - len(timestamps))
+        remaining = max_calls - len(timestamps)
+
         # Return here if we still have remaining requests.
         if remaining > 0:
             return None
@@ -167,7 +168,7 @@ class RedisBackend(Backend):
         self.__rate_limit_response.set_headers(
             max_rate_string,
             remaining,
-            math.ceil(timestamp_0 + int(window_seconds) - int(now))
+            math.ceil(timestamp_0 + window_seconds_int - now_int)
         )
         return self.__rate_limit_response
 
@@ -192,9 +193,9 @@ class MemcachedBackend(Backend):
         )
 
     def is_backend_available(self):
-        if self.__memcached.set("test", 1):
-            return False
-        return True
+        if not self.__memcached.set("test", 1):
+            return False, "rate limit failed. memcached not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
+        return True, ""
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
         """

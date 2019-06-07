@@ -8,7 +8,8 @@ pip install git+https://github.com/sapcc/openstack-rate-limit-middleware.git
 
 ### Pipeline 
 
-The rate limit middleware must be added after the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware):
+This middleware relies on the request classification provided by the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware)
+and must be added after it:
 ```
 pipeline = .. sapcc-watcher sapcc-rate-limit ..
 ```

@@ -120,6 +120,11 @@ class OpenStackRateLimitMiddleware(object):
                 logger=self.logger
             )
 
+        # Test if the backend is ready.
+        is_available, msg = self.backend.is_available()
+        if not is_available:
+            self.logger.warning("backend not available: {0}".format(msg))
+
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
         configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
@@ -184,6 +189,11 @@ class OpenStackRateLimitMiddleware(object):
                         status=status, status_code=status_code, headerlist=headers, body=body, json_body=json_body
                     )
 
+        except Exception as e:
+            self.logger.debug(
+                "error configuring custom responses. falling back to defaults: {0}".format(str(e))
+            )
+
         finally:
             self.ratelimit_response = ratelimit_response
             self.blacklist_response = blacklist_response
@@ -206,13 +216,21 @@ class OpenStackRateLimitMiddleware(object):
         :param target_type_uri: the target type URI of the response
         :return: None or BlacklistResponse or RateLimitResponse
         """
+        # Labels used for all metrics.
         metric_labels = [
             'service:{0}'.format(self.service_type),
             'service_name:{0}'.format(self.cadf_service_name),
             'action:{0}'.format(action),
-            'scope:{0}'.format(scope),
+            '{0}:{1}'.format(self.rate_limit_by,scope),
             'target_type_uri:{0}'.format(target_type_uri)
         ]
+
+        # Get CADF service name and trim from target_type_uri.
+        trimmed_target_type_uri = target_type_uri
+        if not common.is_none_or_unknown(self.cadf_service_name):
+            trimmed_target_type_uri = self._trim_cadf_service_prefix_from_target_type_uri(
+                self.cadf_service_name, target_type_uri
+            )
 
         # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
         if self.is_scope_whitelisted(scope):
@@ -228,7 +246,7 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get global rate limits from the provider.
         global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
-            action, target_type_uri
+            action, trimmed_target_type_uri
         )
 
         # Don't rate limit if limit=-1 or unknown.
@@ -241,7 +259,7 @@ class OpenStackRateLimitMiddleware(object):
             # Check global rate limits.
             # Global rate limits enforce a backend protection by counting all requests independent of their scope.
             rate_limit_response = self.backend.rate_limit(
-                scope=None, action=action, target_type_uri=target_type_uri, max_rate_string=global_rate_limit
+                scope=None, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=global_rate_limit
             )
             if rate_limit_response:
                 self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
@@ -249,7 +267,7 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get local (for a certain scope) rate limits from provider.
         local_rate_limit = self.ratelimit_provider.get_local_rate_limits(
-            scope, action, target_type_uri
+            scope, action, trimmed_target_type_uri
         )
 
         # Don't rate limit for rate_limit=-1 or if unknown.
@@ -261,7 +279,7 @@ class OpenStackRateLimitMiddleware(object):
 
             # Check local (for a specific scope) rate limits.
             rate_limit_response = self.backend.rate_limit(
-                scope=scope, action=action, target_type_uri=target_type_uri, max_rate_string=local_rate_limit
+                scope=scope, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=local_rate_limit
             )
             if rate_limit_response:
                 self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
@@ -305,8 +323,8 @@ class OpenStackRateLimitMiddleware(object):
 
             rate_limit_response = self._rate_limit(scope, action, target_type_uri)
             if rate_limit_response:
+                rate_limit_response.set_environ(environ)
                 resp = rate_limit_response
-                resp.set_environ(environ)
 
         except Exception as e:
             self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
@@ -340,6 +358,12 @@ class OpenStackRateLimitMiddleware(object):
         return False
 
     def get_scope_action_target_type_uri_from_environ(self, environ):
+        """
+        Get the scope, action, target type URI from the request environ.
+
+        :param environ: the request environ
+        :return: tuple of scope, action, target type URI
+        """
         action = target_type_uri = scope = None
         try:
             # Get the CADF action.
@@ -352,14 +376,15 @@ class OpenStackRateLimitMiddleware(object):
             if not common.is_none_or_unknown(env_target_type_uri):
                 target_type_uri = env_target_type_uri
 
-            # Get CADF service name and trim from target_type_uri.
-            if not common.is_none_or_unknown(self.cadf_service_name):
-                target_type_uri = self._trim_cadf_service_prefix_from_target_type_uri(
-                    self.cadf_service_name, target_type_uri
-                )
+            # Get scope from request environment, which might be an initiator.project_id, target.project_id, etc. .
+            env_scope = self._get_scope_from_environ(environ)
+            if not common.is_none_or_unknown(env_scope):
+                scope = env_scope
 
-            # Get scope, which might be initiator.project_id, target.project_id, etc. .
-            scope = self._get_scope_from_environ(environ)
+        except Exception as e:
+            self.logger.debug(
+                "error while getting scope, action, target type URI from environ".format(str(e))
+            )
 
         finally:
             self.logger.debug(
@@ -413,9 +438,9 @@ class OpenStackRateLimitMiddleware(object):
         Get cadf service name and trim from target_type_uri.
 
         Example:
-            target_type_uri:      service/storage/object/account/container/object
-            cadf_service_name:    service/storage/object
-            => account/container/object
+            target_type_uri:            service/storage/object/account/container/object
+            cadf_service_name:          service/storage/object
+            => trimmed_target_type_uri: account/container/object
 
         :param prefix: the cadf service name prefixing the target_type_uri
         :param target_type_uri: the target_type_uri with the prefix
