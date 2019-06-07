@@ -168,7 +168,7 @@ class RedisBackend(Backend):
         self.__rate_limit_response.set_headers(
             max_rate_string,
             remaining,
-            math.ceil(timestamp_0 + window_seconds_int - now_int)
+            math.ceil(timestamp_0 + int(window_seconds) - int(now))
         )
         return self.__rate_limit_response
 
