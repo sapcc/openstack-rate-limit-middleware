@@ -14,7 +14,7 @@
 
 import unittest
 
-from rate_limit.rate_limit import Units
+from rate_limit.units import Units
 
 
 class TestUnits(unittest.TestCase):
