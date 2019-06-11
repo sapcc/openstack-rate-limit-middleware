@@ -22,8 +22,6 @@ from . import common
 from . import provider
 from . import response
 
-from .units import Units
-
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
 
