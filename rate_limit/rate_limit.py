@@ -231,7 +231,7 @@ class OpenStackRateLimitMiddleware(object):
             'service:{0}'.format(self.service_type),
             'service_name:{0}'.format(self.cadf_service_name),
             'action:{0}'.format(action),
-            '{0}:{1}'.format(self.rate_limit_by,scope),
+            '{0}:{1}'.format(self.rate_limit_by, scope),
             'target_type_uri:{0}'.format(target_type_uri)
         ]
 

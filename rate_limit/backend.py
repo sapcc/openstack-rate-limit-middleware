@@ -73,8 +73,8 @@ class RedisBackend(Backend):
         )
         self.__host = host
         self.__port = port
-        self.__max_sleep_time_seconds=max_sleep_time_seconds
-        self.__log_sleep_time_seconds=log_sleep_time_seconds
+        self.__max_sleep_time_seconds = max_sleep_time_seconds
+        self.__log_sleep_time_seconds = log_sleep_time_seconds
         self.__rate_limit_response = rate_limit_response
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
@@ -198,7 +198,7 @@ class RedisBackend(Backend):
 class MemcachedBackend(Backend):
     """Beta Memcached backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response,  max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
+    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
         super(MemcachedBackend, self).__init__(
             host=host,
             port=port,
@@ -211,8 +211,8 @@ class MemcachedBackend(Backend):
         self.__host = host
         self.__port = port
         self.__rate_limit_response = rate_limit_response
-        self.__max_sleep_time_seconds=max_sleep_time_seconds
-        self.__log_sleep_time_seconds=log_sleep_time_seconds
+        self.__max_sleep_time_seconds = max_sleep_time_seconds
+        self.__log_sleep_time_seconds = log_sleep_time_seconds
         self.__memcached = memcache.Client(
             servers=[host],
             debug=1
