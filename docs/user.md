@@ -1,7 +1,9 @@
 User documentation
 ------------------
 
-The OpenStack rate limit middleware allows controlling the number of incoming requests on global and project level for an OpenStack API.
+The OpenStack rate limit middleware allows controlling the number of incoming requests on a global and project level as well as per host IP for an OpenStack API.
+Additionally, this middleware supports slowing down requests instead of immediately returning a rate limit response.
+A request can be suspended for configurable duration in order to fit the rate limit.
 
 The response will indicate if the user was rate limited provide additional information via headers as shown below. 
 

@@ -59,7 +59,7 @@ class Backend(object):
 
 
 class RedisBackend(Backend):
-    """Redis backend for storing rate limits."""
+    """Stable Redis backend for storing rate limits."""
 
     def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
         super(RedisBackend, self).__init__(
@@ -196,7 +196,7 @@ class RedisBackend(Backend):
 
 
 class MemcachedBackend(Backend):
-    """Memcached backend for storing rate limits."""
+    """Beta Memcached backend for storing rate limits."""
 
     def __init__(self, host, port, rate_limit_response,  max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
         super(MemcachedBackend, self).__init__(
