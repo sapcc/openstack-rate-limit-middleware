@@ -24,13 +24,14 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
             wsgi_config={
                 'config_file': SWIFTCONFIGPATH,
                 'max_sleep_time_seconds': 15,
-                'rate_buffer_seconds': 10,
-                'clock_accuracy': '1ms',
                 'service_type': SERVICE_TYPE
             }
         )
 
-        limes_provider = provider.LimesRateLimitProvider(service_type=SERVICE_TYPE)
+        limes_provider = provider.LimesRateLimitProvider(
+            service_type=SERVICE_TYPE,
+            refresh_interval_seconds=20,
+        )
         limes_provider.keystone = fake.FakeKeystoneclient()
         limes_provider.limes_base_url = 'https://localhost:8887'
 

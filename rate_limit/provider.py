@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 class RateLimitProvider(object):
     """Interface to obtain rate limits from different sources."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
         self.global_ratelimits = {}
@@ -63,9 +63,9 @@ class RateLimitProvider(object):
 class ConfigurationRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from a configuration file."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
         super(ConfigurationRateLimitProvider, self).__init__(
-            service_type=service_type, logger=logger, kwargs=kwargs
+            service_type=service_type, refresh_interval_seconds=refresh_interval_seconds, logger=logger, kwargs=kwargs
         )
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
@@ -117,9 +117,9 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 class LimesRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from limes."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
         super(LimesRateLimitProvider, self).__init__(
-            service_type=service_type, logger=logger, kwargs=kwargs
+            service_type=service_type, refresh_interval_seconds=refresh_interval_seconds, logger=logger, kwargs=kwargs
         )
 
         # Limes provider will use memcached to store ratelimits for a configurable time (refresh_interval_seconds).
@@ -132,10 +132,8 @@ class LimesRateLimitProvider(RateLimitProvider):
             debug=1
         )
 
-        # declare limes specifics
         self.keystone = None
         self.limes_base_url = None
-        self.refresh_interval_seconds = common.Constants.limes_refresh_interval_seconds
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -179,14 +177,6 @@ class LimesRateLimitProvider(RateLimitProvider):
         if limit:
             return limit
         return -1
-
-    def set_refresh_interval_seconds(self, refresh_interval_seconds):
-        """
-        Set the interval in which rate limits are refreshed.
-
-        :param refresh_interval_seconds: the interval in seconds
-        """
-        self.refresh_interval_seconds = int(refresh_interval_seconds)
 
     def authenticate(self, auth_url, username, user_domain_name, password, domain_name):
         try:

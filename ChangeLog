@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+* fix blacklisting and suspending requests; extend wsgi configuration for max\_sleep\_time\_seconds, log\_sleep\_time\_seconds
+* fix retry-after header value
+* align metric labels with watcher middleware; verify backend on start; update examples in docs
 * easier way of setting headers
 * changelog
 

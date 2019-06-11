@@ -35,8 +35,7 @@ class Constants(object):
     ratelimit_response = 'ratelimit_response'
     blacklist_response = 'blacklist_response'
     max_sleep_time_seconds = 'max_sleep_time_seconds'
-    rate_buffer_seconds = 'rate_buffer_seconds'
-    clock_accuracy = 'clock_accuracy'
+    log_sleep_time_seconds = 'log_sleep_time_seoncds'
     unknown = 'unknown'
 
     # rate limit by ..

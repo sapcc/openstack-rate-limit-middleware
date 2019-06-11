@@ -32,6 +32,14 @@ clock_accuracy:   <n><unit> (default 1ms)
 # However, this can also be se to `initiator_host_address` or `target_project_id`.
 rate_limit_by:    <string>
 
+# The maximal time a request can be suspended in seconds.
+# Instead of immediately returning a rate limit response, a request can be suspended
+# until the specified maximum duration to fit the configured rate limit. 
+max_sleep_time_seconds: <int> (default: 20)
+
+# Log requests that are going to be suspended for log_sleep_time_seconds <= t <= max_sleep_time_seconds.
+log_sleep_time_seconds: <int> (default: 10)
+
 # Emit Prometheus metrics via StatsD.
 # Host of the StatsD exporter.
 statsd_host:      <string> (default: 127.0.0.1)

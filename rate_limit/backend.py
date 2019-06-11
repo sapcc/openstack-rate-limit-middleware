@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import eventlet
 import logging
 import math
 import memcache
@@ -60,16 +61,20 @@ class Backend(object):
 class RedisBackend(Backend):
     """Redis backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, logger, **kwargs):
+    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
             rate_limit_response=rate_limit_response,
+            max_sleep_time_seconds=max_sleep_time_seconds,
+            log_sleep_time_seconds=log_sleep_time_seconds,
             logger=logger,
             kwargs=kwargs
         )
         self.__host = host
         self.__port = port
+        self.__max_sleep_time_seconds=max_sleep_time_seconds
+        self.__log_sleep_time_seconds=log_sleep_time_seconds
         self.__rate_limit_response = rate_limit_response
         self.__redis_conn_pool = redis.ConnectionPool(host=host, port=port)
 
@@ -157,18 +162,35 @@ class RedisBackend(Backend):
             timestamps = result[1]
 
         # Check whether rate limit is exhausted.
-        remaining = max_calls - len(timestamps)
-
+        remaining = int(max_calls - len(timestamps))
         # Return here if we still have remaining requests.
         if remaining > 0:
             return None
 
-        # Generate rate limit response if no requests left.
-        timestamp_0 = int(float(timestamps[0]) / 1000)
+        # Check if the request should be suspended.
+        # Get seconds until another request would be possible according to rate limit. Always round up.
+        timestamp0 = now_int
+        if len(timestamps) > 0:
+            timestamp0 = int(timestamps[0])
+
+        retry_after_seconds = int(math.ceil(timestamp0 + window_seconds_int - now_int) / 1000)
+        # Suspend the current request if its it has to wait no longer than max_sleep_time_seconds.
+        if retry_after_seconds <= self.__max_sleep_time_seconds:
+            # Log the current request if it has to be suspended for at least log_sleep_time_seconds.
+            if retry_after_seconds >= self.__log_sleep_time_seconds:
+                self.logger.info(
+                    "suspending request '{0}' for '{1}' seconds to fit rate limit '{2}'"
+                    .format(key, retry_after_seconds, max_rate_string)
+                )
+            eventlet.sleep(retry_after_seconds)
+            return None
+
+        # If rate limit exceeded and the request cannot be suspended return the rate limit response.
+        # Set headers for rate limit response.
         self.__rate_limit_response.set_headers(
-            max_rate_string,
-            remaining,
-            math.ceil(timestamp_0 + int(window_seconds) - int(now))
+            ratelimit=max_rate_string,
+            remaining=remaining,
+            retry_after=retry_after_seconds
         )
         return self.__rate_limit_response
 
@@ -176,17 +198,21 @@ class RedisBackend(Backend):
 class MemcachedBackend(Backend):
     """Memcached backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, logger, **kwargs):
+    def __init__(self, host, port, rate_limit_response,  max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
         super(MemcachedBackend, self).__init__(
             host=host,
             port=port,
             rate_limit_response=rate_limit_response,
+            max_sleep_time_seconds=max_sleep_time_seconds,
+            log_sleep_time_seconds=log_sleep_time_seconds,
             logger=logger,
             kwargs=kwargs
         )
         self.__host = host
         self.__port = port
         self.__rate_limit_response = rate_limit_response
+        self.__max_sleep_time_seconds=max_sleep_time_seconds
+        self.__log_sleep_time_seconds=log_sleep_time_seconds
         self.__memcached = memcache.Client(
             servers=[host],
             debug=1

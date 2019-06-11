@@ -38,8 +38,6 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             wsgi_config={
                 'config_file': SWIFTCONFIGPATH,
                 'max_sleep_time_seconds': 15,
-                'rate_buffer_seconds': 10,
-                'clock_accuracy': '1ms',
             }
         )
         self.is_setup = True

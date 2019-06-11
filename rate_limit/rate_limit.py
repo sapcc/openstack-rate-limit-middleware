@@ -85,10 +85,8 @@ class OpenStackRateLimitMiddleware(object):
             self.cadf_service_name = common.CADF_SERVICE_TYPE_PREFIX_MAP.get(self.service_type, None)
 
         # Use configured parameters or ensure defaults.
-        self.max_sleep_time_seconds = self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20)
-        self.rate_buffer_seconds = self.wsgi_config.get(common.Constants.rate_buffer_seconds, 5)
-        clock_accuracy = self.wsgi_config.get(common.Constants.clock_accuracy, '1ms')
-        self.clock_accuracy = 1 / Units.parse(clock_accuracy)
+        max_sleep_time_seconds = int(self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20))
+        log_sleep_time_seconds = int(self.wsgi_config.get(common.Constants.log_sleep_time_seconds, 10))
 
         # Setup ratelimit and blacklist response.
         self._setup_response()
@@ -110,6 +108,8 @@ class OpenStackRateLimitMiddleware(object):
                 host=backend_host,
                 port=backend_port,
                 rate_limit_response=self.ratelimit_response,
+                max_sleep_time_seconds=max_sleep_time_seconds,
+                log_sleep_time_seconds=log_sleep_time_seconds,
                 logger=self.logger
             )
         else:
@@ -117,47 +117,32 @@ class OpenStackRateLimitMiddleware(object):
                 host=backend_host,
                 port=backend_port,
                 rate_limit_response=self.ratelimit_response,
+                max_sleep_time_seconds=max_sleep_time_seconds,
+                log_sleep_time_seconds=log_sleep_time_seconds,
                 logger=self.logger
             )
 
         # Test if the backend is ready.
         is_available, msg = self.backend.is_available()
         if not is_available:
-            self.logger.warning("backend not available: {0}".format(msg))
+            self.logger.warning("rate limit not possible. the backend is not available: {0}".format(msg))
 
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
         configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
             service_type=self.service_type,
+            refresh_interval_seconds=None,
             logger=self.logger
         )
+        # Force load of rate limits from configuration file.
         configuration_ratelimit_provider.read_rate_limits_from_config(config_file)
         self.ratelimit_provider = configuration_ratelimit_provider
 
         # If limes is enabled and we want to rate limit by initiator|target project id,
         # Set LimesRateLimitProvider as the provider for rate limits.
         limes_enabled = wsgi_config.get('limes_enabled', False)
-        if limes_enabled and common.is_ratelimit_by_project_id(self.rate_limit_by):
-            try:
-                limes_ratelimit_provider = provider.LimesRateLimitProvider(
-                    service_type=self.service_type,
-                    logger=self.logger
-                )
-                limes_ratelimit_provider.authenticate(
-                    auth_url=wsgi_config.get('auth_url'),
-                    username=wsgi_config.get('username'),
-                    user_domain_name=wsgi_config.get('user_domain_name'),
-                    password=wsgi_config.get('password'),
-                    domain_name=wsgi_config.get('domain_name')
-                )
-
-                limes_refresh_interval_seconds = wsgi_config.get(
-                    'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
-                )
-                limes_ratelimit_provider.set_refresh_interval_seconds(limes_refresh_interval_seconds)
-                self.ratelimit_provider = limes_ratelimit_provider
-            except Exception as e:
-                self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
+        if limes_enabled:
+            self.__setup_limes_ratelimit_provider()
 
     def _setup_response(self):
         """Setup configurable RateLimitExceededResponse and BlacklistResponse."""
@@ -197,6 +182,31 @@ class OpenStackRateLimitMiddleware(object):
         finally:
             self.ratelimit_response = ratelimit_response
             self.blacklist_response = blacklist_response
+
+    def __setup_limes_ratelimit_provider(self):
+        """Setup Limes as provider for rate limits. If not successful fallback to configuration file."""
+        try:
+            limes_refresh_interval_seconds = self.wsgi_config.get(
+                'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
+            )
+
+            limes_ratelimit_provider = provider.LimesRateLimitProvider(
+                service_type=self.service_type,
+                refresh_interval_seconds=limes_refresh_interval_seconds,
+                logger=self.logger
+            )
+
+            limes_ratelimit_provider.authenticate(
+                auth_url=self.wsgi_config.get('auth_url'),
+                username=self.wsgi_config.get('username'),
+                user_domain_name=self.wsgi_config.get('user_domain_name'),
+                password=self.wsgi_config.get('password'),
+                domain_name=self.wsgi_config.get('domain_name')
+            )
+
+            self.ratelimit_provider = limes_ratelimit_provider
+        except Exception as e:
+            self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
 
     @classmethod
     def factory(cls, global_config, **local_config):
@@ -242,7 +252,7 @@ class OpenStackRateLimitMiddleware(object):
         if self.is_scope_blacklisted(scope):
             self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
             self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
-            return self.blacklist_response.copy()
+            return self.blacklist_response
 
         # Get global rate limits from the provider.
         global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
