@@ -122,8 +122,8 @@ def response_equal(expected, got):
             and isinstance(got, (RateLimitExceededResponse, BlacklistResponse)):
 
         for h, _ in expected.headerlist:
-            if not got.headers.get(h, None):
-                return False, "expected headers '{0}' but got '{1}'".format(expected.headerlist, got.headerlist)
+            if not h in [itm for itm, _ in got.headers]:
+                return False, "expected header '{0}' but got '{1}'".format(expected.headerlist, got.headerlist)
 
         if expected.status != got.status:
             return False, "expected status '{0}' but got '{1}'".format(expected.status, got.status)
