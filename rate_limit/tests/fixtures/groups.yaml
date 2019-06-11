@@ -1,0 +1,23 @@
+groups:
+  write:
+    - update
+    - delete
+
+  read:
+    - read
+    - read/list
+
+rates:
+  global:
+    account/container:
+      - action: write
+        limit: 1r/m
+
+  default:
+    account/container:
+      - action: write
+        limit: 2r/m
+
+    account/container/object:
+      - action: read
+        limit: 3r/m

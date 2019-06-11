@@ -90,6 +90,42 @@ blacklist_response:
     X-SERVICE: SOMETHING
 ```
 
+## Rate limit groups
+
+A set of CADF actions can be logically grouped and - in terms of rate limiting - be count
+
+Example:  
+The CADF actions `udpate`, `delete` are part of the `write` rate limit group.
+Thus any `update` or `delete` request will be jointly assessed as a `write` request. The middleware considers only the rate limit for `write`.  
+
+```yaml
+groups:
+  write:
+    - update
+    - delete
+
+  read:
+    - read
+    - read/list
+
+rates:
+  global:
+    account/container:
+      - action: write
+        limit: 1r/m
+      - action: create
+        limit: 2/rm
+
+  default:
+    account/container:
+      - action: write
+        limit: 2r/m
+
+    account/container/object:
+      - action: read
+        limit: 3r/m
+```
+
 ## Example configuration
 
 Rate limits can be specified via a configuration file and/or via [Limes](https://github.com/sapcc/limes).  

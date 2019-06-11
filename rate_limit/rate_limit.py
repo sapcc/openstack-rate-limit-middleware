@@ -19,6 +19,7 @@ from datadog.dogstatsd import DogStatsd
 
 from . import backend as rate_limit_backend
 from . import common
+from . import errors
 from . import provider
 from . import response
 
@@ -69,7 +70,12 @@ class OpenStackRateLimitMiddleware(object):
         self.config = {}
         config_file = wsgi_config.get('config_file', None)
         if config_file:
-            self.config = common.load_config(config_file)
+            try:
+                self.config = common.load_config(config_file)
+            except errors.ConfigError as e:
+                self.logger.warning(
+                    "error loading configuration: {0}".format(str(e))
+                )
 
         self.service_type = wsgi_config.get('service_type', None)
 
@@ -95,6 +101,9 @@ class OpenStackRateLimitMiddleware(object):
         config_whitelist = self.config.get('whitelist', [])
         self.whitelist = default_whitelist + config_whitelist
         self.blacklist = self.config.get('blacklist', [])
+
+        # Mapping of potentially multiple CADF actions to one action.
+        self.rate_limit_groups = self.config.get('groups', {})
 
         # Configurable scope in which a rate limit is applied. Defaults to initiator project id.
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
@@ -232,6 +241,14 @@ class OpenStackRateLimitMiddleware(object):
             '{0}:{1}'.format(self.rate_limit_by, scope),
             'target_type_uri:{0}'.format(target_type_uri)
         ]
+
+        # Check whether a set of CADF actions are accounted together.
+        new_action = self.get_action_from_rate_limit_groups(action)
+        if not common.is_none_or_unknown(new_action):
+            action = new_action
+            metric_labels.append(
+                'action_group:{0}'.format(action)
+            )
 
         # Get CADF service name and trim from target_type_uri.
         trimmed_target_type_uri = target_type_uri
@@ -467,3 +484,15 @@ class OpenStackRateLimitMiddleware(object):
             )
         finally:
             return target_type_uri_without_prefix
+
+    def get_action_from_rate_limit_groups(self, action):
+        """
+        Multiple CADF actions can be grouped and accounted as one entity.
+
+        :param action: the original CADF action
+        :return: the original action or action as per grouping
+        """
+        for group in self.rate_limit_groups:
+            if action in self.rate_limit_groups[group]:
+                return group
+        return action
