@@ -25,4 +25,4 @@ Thus either `Redis >= 5.0.0` (stable; preferred) or `Memcached >= 1.5.12` (beta)
 
 - [Installation & WSGI configuration](./docs/install.md)
 - [How to configure rate limits](./docs/configure.md)
-- [User guide](./docs/user)
+- [User guide](./docs/user.md)
