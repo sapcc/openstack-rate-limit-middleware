@@ -35,6 +35,7 @@ rate_limit_by:    <string>
 # The maximal time a request can be suspended in seconds.
 # Instead of immediately returning a rate limit response, a request can be suspended
 # until the specified maximum duration to fit the configured rate limit. 
+# This feature can be disabled by setting the max sleep time to 0 seconds.
 max_sleep_time_seconds: <int> (default: 20)
 
 # Log requests that are going to be suspended for log_sleep_time_seconds <= t <= max_sleep_time_seconds.

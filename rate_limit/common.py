@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import time
 import yaml
 
@@ -148,3 +149,42 @@ def load_config(cfg_file):
         raise errors.ConfigError("Failed to load configuration from file %s: %s" % (cfg_file, str(e)))
     finally:
         return yaml_conf
+
+
+def to_int(raw_value, default=0):
+    """
+    Safely parse a raw value and convert to an integer.
+    If that fails return the default value.
+
+    :param raw_value: the raw value
+    :param default: the fallback value if conversion fails
+    :return: the value as int or None
+    """
+    try:
+        val = int(float(raw_value))
+        return val
+    except (ValueError, TypeError):
+        return default
+
+
+def load_lua_script(filename, foldername="lua"):
+    """
+    Load a lua scripts.
+
+    :param filename: the filename of the script
+    :param foldername: the name of the folder containing the script
+    :return: the content or None
+    """
+    content = None
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "{0}/{1}".format(foldername, filename)
+    )
+    try:
+        f = open(path)
+        content = f.read()
+        f.close()
+    except IOError:
+        return None
+    finally:
+        return content

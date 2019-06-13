@@ -106,6 +106,18 @@ class TestParseConfig(unittest.TestCase):
         self.assertEqual(60, Units.parse('1m'))
         self.assertEqual(-1, Units.parse('mms'))
 
+    def test_load_lua_script(self):
+        content = common.load_lua_script('redis_sliding_window.lua')
+        self.assertIsNotNone(
+            content,
+            "the content of the lua script should not be None"
+        )
+        self.assertNotEqual(
+            content,
+            "",
+            "the content of the lua script should not be empty"
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -40,7 +40,7 @@ class RateLimitProvider(object):
         Get the global rate limit per action and target type URI.
         Returns -1 if unlimited.
 
-        :param action: the cadf action for the request
+        :param action: the CADF action for the request
         :param target_type_uri: the target type URI of the request
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 if not set
@@ -52,7 +52,7 @@ class RateLimitProvider(object):
         Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.
 
         :param scope: the UUID of the project, domain or the IP
-        :param action: the cadf action of the request
+        :param action: the CADF action of the request
         :param target_type_uri: the target type URI of the request
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
@@ -73,7 +73,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         Get the global rate limit per action and target type URI.
         Returns -1 if unlimited.
 
-        :param action: the cadf action for the request
+        :param action: the CADF action for the request
         :param target_type_uri: the target type URI of the request
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 (unlimited) if not set
@@ -90,7 +90,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.
 
         :param scope: the UUID of the project, domain or the IP
-        :param action: the cadf action of the request
+        :param action: the CADF action of the request
         :param target_type_uri: the target type URI of the request
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
