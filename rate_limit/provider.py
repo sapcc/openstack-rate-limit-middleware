@@ -22,7 +22,6 @@ from keystoneauth1.identity import v3
 from keystoneauth1 import session
 
 from . import common
-from . import errors
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
