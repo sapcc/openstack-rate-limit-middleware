@@ -57,10 +57,11 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get backend configuration.
         # Backend is used to store count of requests.
-        backend_type = wsgi_config.get('backend', 'redis')
         backend_host = wsgi_config.get('backend_host', '127.0.0.1')
         backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
-        self.logger.debug("using backend '{0}' on '{1}:{2}'".format(backend_type, backend_host, backend_port))
+        self.logger.debug(
+            "using backend '{0}' on '{1}:{2}'".format(common.Constants.backend_redis, backend_host, backend_port)
+        )
 
         backend_timeout_seconds = common.to_int(self.wsgi_config.get('backend_timeout_seconds'), 20)
         backend_max_connections = common.to_int(self.wsgi_config.get('backend_max_connections'), 100)
@@ -108,27 +109,16 @@ class OpenStackRateLimitMiddleware(object):
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
-        # Initializes the backend as configured. Defaults to redis.
-        if backend_type == common.Constants.backend_memcache:
-            self.backend = rate_limit_backend.MemcachedBackend(
-                host=backend_host,
-                port=backend_port,
-                rate_limit_response=self.ratelimit_response,
-                max_sleep_time_seconds=max_sleep_time_seconds,
-                log_sleep_time_seconds=log_sleep_time_seconds,
-                logger=self.logger
-            )
-        else:
-            self.backend = rate_limit_backend.RedisBackend(
-                host=backend_host,
-                port=backend_port,
-                rate_limit_response=self.ratelimit_response,
-                max_sleep_time_seconds=max_sleep_time_seconds,
-                log_sleep_time_seconds=log_sleep_time_seconds,
-                logger=self.logger,
-                timeout_seconds=backend_timeout_seconds,
-                max_connections=backend_max_connections,
-            )
+        self.backend = rate_limit_backend.RedisBackend(
+            host=backend_host,
+            port=backend_port,
+            rate_limit_response=self.ratelimit_response,
+            max_sleep_time_seconds=max_sleep_time_seconds,
+            log_sleep_time_seconds=log_sleep_time_seconds,
+            logger=self.logger,
+            timeout_seconds=backend_timeout_seconds,
+            max_connections=backend_max_connections,
+        )
 
         # Test if the backend is ready.
         is_available, msg = self.backend.is_available()

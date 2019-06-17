@@ -50,9 +50,9 @@ class Backend(object):
         """
         return None
 
-    def is_backend_available(self):
+    def is_available(self):
         """
-        Check whether the backend is available and supported.
+        Check whether the backend is available and the version supported.
 
         :return: bool whether it's available, string describing the error (if any)
         """
@@ -203,107 +203,3 @@ class RedisBackend(Backend):
             retry_after=retry_after_seconds
         )
         return self.__rate_limit_response
-
-
-class MemcachedBackend(Backend):
-    """Beta Memcached backend for storing rate limits."""
-
-    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
-        super(MemcachedBackend, self).__init__(
-            host=host,
-            port=port,
-            rate_limit_response=rate_limit_response,
-            max_sleep_time_seconds=max_sleep_time_seconds,
-            log_sleep_time_seconds=log_sleep_time_seconds,
-            logger=logger,
-            kwargs=kwargs
-        )
-        self.__host = host
-        self.__port = port
-        self.__rate_limit_response = rate_limit_response
-        self.__max_sleep_time_seconds = max_sleep_time_seconds
-        self.__log_sleep_time_seconds = log_sleep_time_seconds
-        self.__memcached = memcache.Client(
-            servers=[host],
-            debug=1
-        )
-
-    def is_backend_available(self):
-        if not self.__memcached.set("test", 1):
-            return False, "rate limit failed. memcached not available. host='{0}', port='{1}'".format(self.__host, str(self.__port))
-        return True, ""
-
-    def rate_limit(self, scope, action, target_type_uri, max_rate_string):
-        """
-        Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
-        If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
-
-        :param scope: the scope (project uuid, host ip, etc., ..) or None for global rate limits
-        :param action: the CADF action
-        :param target_type_uri: the CADF target type URI
-        :param max_rate_string: the max. rate limit per sliding window
-        :return: the configured RateLimitResponse or None
-        """
-        try:
-            max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
-            key = common.key_func(scope, action, target_type_uri)
-            self.logger.debug(
-                "checking rate limit for request '{0} {1}' in scope {2}".format(action, target_type_uri, scope)
-            )
-            return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
-        except Exception as e:
-            self.logger.error('MemcacheConnectionError: {0}'.format(e))
-            return 0
-
-    def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
-        now = time.time()
-
-        # get list of requests that hit the api
-        hit_list = self.__memcached.gets(key)
-        if not hit_list or not isinstance(hit_list, list):
-            hit_list = []
-        hit_list = self.__get_hits_in_current_window(hit_list, now - window_seconds)
-
-        num_req = len(hit_list) + 1
-        rate_limit_reached = num_req > max_calls
-        if rate_limit_reached:
-            self.logger.debug(
-                'rate limit reached key: {0}, max_rate: {1}, window_seconds: {2}'
-                .format(key, max_calls, window_seconds)
-            )
-            self.__rate_limit_response.set_headers(
-                max_rate_string,
-                max_calls - num_req,
-                math.ceil(hit_list[0] + window_seconds - now)
-            )
-            return self.__rate_limit_response
-        # update number of requests and make sure the key expires eventually to avoid polluting the memcache
-        self.__memcached.cas(key, hit_list + [now], time=2 * window_seconds)
-        return None
-
-    def key_with_time_window(self, scope, action, target_type_uri, time_window):
-        """
-        Return a key with a time window suffix, e.g. '012314af_create_servers_11-04-2018_13:00:29'.
-
-        :param scope: the scope uid of the request
-        :param action: cadf action the request
-        :param target_type_uri: the target type uri
-        :param time_window: the sliding time window
-        :return: the key with time slot prefix
-        """
-        return '{0}_{1}'.format(common.key_func(scope, action, target_type_uri), time_window)
-
-    @staticmethod
-    def __get_hits_in_current_window(timestamp_list, not_older_than_timestamp=time.time()):
-        """
-        Get list of requests (actually their timestamps) that hit the api within the current sliding window.
-        If any left: also expire outdated timestamps.
-
-        :param timestamp_list: list of timestamps
-        :param not_older_than_timestamp: delete items older than this timestamp
-        :return: the cleaned timestamp list
-        """
-        for ts in timestamp_list:
-            if ts < not_older_than_timestamp:
-                timestamp_list.remove(ts)
-        return timestamp_list

@@ -48,7 +48,6 @@ class Constants(object):
     limes_refresh_interval_seconds = 300
 
     backend_redis = 'redis'
-    backend_memcache = 'memcache'
 
     # The limit for the current request in the format <n>r/<m><t>.
     # Read: Limit to n requests per m <unit>. Valid interval units are `s, m, h, d`.

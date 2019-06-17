@@ -51,14 +51,10 @@ statsd_port:      <int> (default: 9125)
 # Prefix to apply to all metrics provided by this middleware.
 statsd_prefix:    <string> (default: openstack_ratelimit_middleware)
 
-# The backend used to store number of requests.
-# Choose between redis, memcache.
-backend:          <string> (default: redis)
-
-# Host for backend.
+# Host for redis backend.
 backend_host:     <string> (default: 127.0.0.1)
 
-# Port for backend.
+# Port for redis backend.
 backend_port:     <int> (default: 6379)
 
 ## Limes configuration.
