@@ -11,14 +11,14 @@ The OpenStack Rate Limit Middleware enforces rate limits and enables traffic sha
 It also supports enforcing global and scoped rate limits.
 More details can be found in the documentation.
 
-## Prerequisite
+## Prerequisites
 
 This middleware requires the classification for OpenStack requests.  
 The [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware) can be used to classify requests
 based on the [DMTF CADF specification](https://www.dmtf.org/standards/cadf).
 In terms of rate limiting, a request to an OpenStack service can be described by an *action*, *target type URI* and its *scope*.
 
-Moreover, this middleware uses `Redis >= 5.0.0` as a backend to store rate limits. 
+Moreover, this middleware uses `Redis >= 5.0.0` as a backend to store rate limits.
 
 ## Documentation
 

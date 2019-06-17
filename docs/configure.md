@@ -3,7 +3,7 @@ Middleware configuration
 
 This sections provides an overview of the configurable options via WSGI config and configuration file.
 
-## Global and local rate limits
+# Global and local rate limits
 
 Rate limits can be enforced on 2 levels: Global and local.
   
@@ -17,7 +17,7 @@ Rate limits can be enforced on 2 levels: Global and local.
   If the number of requests per scope, action, target type URI within the specified window would exceed the configured maximum,
     a configurable rate limit response is sent until the number of requests within the window is again below the maximum.
 
-## Configure rate limits
+# Configure rate limits
 
 Rate limits can be configured via a *configuration file* and/or via [*Limes*](https://github.com/sapcc/limes). 
 The configuration file can only be used to specify global rate limits and defaults for local rate limits.
@@ -35,61 +35,6 @@ rates:
               # Limit to n requests per m <unit>. 
               # Valid interval units are `s, m, h, d`.
               limit:    <n>r/<m><t>
-```
-
-
-## Black- & Whitelist
-
-This middleware allows configuring a black- and whitelist for certain scopes.
-A scope might be an (initiator/target) project UUID or an initiator host address.   
-If a scope is blacklisted, the middleware immediately returns the configured blacklist response. 
-Requests in a whitelisted scope are not rate limited.  
-Also see the [examples](../etc/).  
-
-```yaml
-# List of blacklisted scopes (project UUID, host address).
-blacklist:
-    - <scope>
-
-# List of whitelisted scoped (project UUID, host address).
-whitelist:
-    - <scope>
-```
-
-## Customize responses
-
-The blacklist and rate limit responses can be configured as shown below.  
-A custom response requires the **status**, **status_code** and **body** or **json_body** to be specified.
-```yaml
-rate_limit_response:
-  # HTTP response status string.
-  status: 498 Rate Limited
-  
-  # HTTP response status code.
-  status_code: 498
-  
-  # Specify *either* body or json_body.
-  body:  "<html><body><h1>Rate limit exceeded</h1></body></html>"
-  # json_body: { "message": "rate limit exceeded" }
-  
-  # Optional: Set additional headers.
-  headers:
-    X-SERVICE: SOMETHING
-
-blacklist_response:
-  # HTTP response status string.
-  status: 497 Blacklisted
-  
-  # HTTP response status code.
-  status_code: 497
-  
-  # Specify *either* body or json_body.
-  body:  "<html><body><h1>You have been blacklisted. Contact an administrator.</h1></body></html>"
-  # json_body: { "message": "You have been blacklisted. Please contact and administrator." }
-  
-  # Optional: Set additional headers.
-  headers:
-    X-SERVICE: SOMETHING
 ```
 
 ## Rate limit groups
@@ -160,7 +105,61 @@ rates:
         limit: 5r/10m
 ``` 
 
-## Testing
+## Black- & Whitelist
+
+This middleware allows configuring a black- and whitelist for certain scopes.
+A scope might be an (initiator/target) project UUID or an initiator host address.   
+If a scope is blacklisted, the middleware immediately returns the configured blacklist response. 
+Requests in a whitelisted scope are not rate limited.  
+Also see the [examples](../etc/).  
+
+```yaml
+# List of blacklisted scopes (project UUID, host address).
+blacklist:
+    - <scope>
+
+# List of whitelisted scoped (project UUID, host address).
+whitelist:
+    - <scope>
+```
+
+## Customize responses
+
+The blacklist and rate limit responses can be configured as shown below.  
+A custom response requires the **status**, **status_code** and **body** or **json_body** to be specified.
+```yaml
+rate_limit_response:
+  # HTTP response status string.
+  status: 498 Rate Limited
+  
+  # HTTP response status code.
+  status_code: 498
+  
+  # Specify *either* body or json_body.
+  body:  "<html><body><h1>Rate limit exceeded</h1></body></html>"
+  # json_body: { "message": "rate limit exceeded" }
+  
+  # Optional: Set additional headers.
+  headers:
+    X-SERVICE: SOMETHING
+
+blacklist_response:
+  # HTTP response status string.
+  status: 497 Blacklisted
+  
+  # HTTP response status code.
+  status_code: 497
+  
+  # Specify *either* body or json_body.
+  body:  "<html><body><h1>You have been blacklisted. Contact an administrator.</h1></body></html>"
+  # json_body: { "message": "You have been blacklisted. Please contact and administrator." }
+  
+  # Optional: Set additional headers.
+  headers:
+    X-SERVICE: SOMETHING
+```
+
+# Testing
 
 This middleware offers a variety of options for rate limiting and traffic shaping for an OpenStack API.  
 Whether the current configuration and behaviour matches the users expectations can be verified using [siege](https://github.com/JoeDog/siege) - a load testing and benchmarking toolkit.
