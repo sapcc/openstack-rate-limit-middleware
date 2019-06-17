@@ -39,13 +39,19 @@ class Constants(object):
     log_sleep_time_seconds = 'log_sleep_time_seoncds'
     unknown = 'unknown'
 
-    # rate limit by ..
+    # Rate limit by ..
     initiator_project_id = 'initiator_project_id'
     initiator_host_address = 'initiator_host_address'
     target_project_id = 'target_project_id'
 
-    # fetch rate limits from limes every t seconds
-    limes_refresh_interval_seconds = 300
+    # Interval in which cached rate limits are refreshed in seconds.
+    limes_refresh_interval_seconds = 'limes_refresh_interval_seconds'
+
+    # The URI of the Limes API.
+    limes_api_uri = 'limes_api_uri'
+
+    # Type of the Limes service as found in token service catalog.
+    limes_service_type = 'limes'
 
     backend_redis = 'redis'
 
@@ -201,3 +207,16 @@ def load_lua_script(filename, foldername="lua"):
         return None
     finally:
         return content
+
+
+def build_uri(base, path):
+    """
+    Build the URI using base and path.
+
+    :param base:
+    :param path:
+    :return:
+    """
+    base = base.rstrip('/')
+    path = path.lstrip('/')
+    return base + '/' + path

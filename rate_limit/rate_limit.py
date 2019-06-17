@@ -57,12 +57,13 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get backend configuration.
         # Backend is used to store count of requests.
-        backend_host = wsgi_config.get('backend_host', '127.0.0.1')
-        backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
+        self.backend_host = wsgi_config.get('backend_host', '127.0.0.1')
+        self.backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
         self.logger.debug(
-            "using backend '{0}' on '{1}:{2}'".format(common.Constants.backend_redis, backend_host, backend_port)
+            "using backend '{0}' on '{1}:{2}'".format(
+                common.Constants.backend_redis, self.backend_host, self.backend_port
+            )
         )
-
         backend_timeout_seconds = common.to_int(self.wsgi_config.get('backend_timeout_seconds'), 20)
         backend_max_connections = common.to_int(self.wsgi_config.get('backend_max_connections'), 100)
 
@@ -110,8 +111,8 @@ class OpenStackRateLimitMiddleware(object):
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
         self.backend = rate_limit_backend.RedisBackend(
-            host=backend_host,
-            port=backend_port,
+            host=self.backend_host,
+            port=self.backend_port,
             rate_limit_response=self.ratelimit_response,
             max_sleep_time_seconds=max_sleep_time_seconds,
             log_sleep_time_seconds=log_sleep_time_seconds,
@@ -128,9 +129,7 @@ class OpenStackRateLimitMiddleware(object):
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
         configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
-            service_type=self.service_type,
-            refresh_interval_seconds=None,
-            logger=self.logger
+            service_type=self.service_type, logger=self.logger
         )
         # Force load of rate limits from configuration file.
         configuration_ratelimit_provider.read_rate_limits_from_config(config_file)
@@ -184,25 +183,21 @@ class OpenStackRateLimitMiddleware(object):
     def __setup_limes_ratelimit_provider(self):
         """Setup Limes as provider for rate limits. If not successful fallback to configuration file."""
         try:
-            limes_refresh_interval_seconds = self.wsgi_config.get(
-                'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
-            )
-
             limes_ratelimit_provider = provider.LimesRateLimitProvider(
                 service_type=self.service_type,
-                refresh_interval_seconds=limes_refresh_interval_seconds,
-                logger=self.logger
-            )
-
-            limes_ratelimit_provider.authenticate(
-                auth_url=self.wsgi_config.get('auth_url'),
+                logger=self.logger,
+                redis_host=self.backend_host,
+                redis_port=self.backend_port,
+                refresh_interval_seconds=self.wsgi_config.get(common.Constants.limes_refresh_interval_seconds, 300),
+                limes_api_uri=self.wsgi_config.get(common.Constants.limes_api_uri),
+                auth_url=self.wsgi_config.get('identity_auth_url'),
                 username=self.wsgi_config.get('username'),
                 user_domain_name=self.wsgi_config.get('user_domain_name'),
                 password=self.wsgi_config.get('password'),
                 domain_name=self.wsgi_config.get('domain_name')
             )
-
             self.ratelimit_provider = limes_ratelimit_provider
+
         except Exception as e:
             self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
 

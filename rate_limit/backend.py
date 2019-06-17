@@ -15,8 +15,6 @@
 import eventlet
 import hashlib
 import logging
-import math
-import memcache
 import redis
 import time
 
@@ -177,8 +175,8 @@ class RedisBackend(Backend):
             )
 
         # Parse result list safely.
-        remaining = common.list_to_int(result, idx=0)
-        retry_after_seconds = common.list_to_int(result, idx=1)
+        remaining = common.listitem_to_int(result, idx=0)
+        retry_after_seconds = common.listitem_to_int(result, idx=1)
 
         # Return here if we still have remaining requests.
         if remaining > 0:

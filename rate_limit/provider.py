@@ -13,15 +13,16 @@
 # under the License.
 
 
+import keystoneclient.v3 as keystonev3
 import logging
-import memcache
+import redis
 import requests
 
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
-from keystoneclient.v3 import client
 
 from . import common
+from . import errors
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
@@ -29,7 +30,7 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 class RateLimitProvider(object):
     """Interface to obtain rate limits from different sources."""
 
-    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
         self.global_ratelimits = {}
@@ -63,9 +64,9 @@ class RateLimitProvider(object):
 class ConfigurationRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from a configuration file."""
 
-    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
         super(ConfigurationRateLimitProvider, self).__init__(
-            service_type=service_type, refresh_interval_seconds=refresh_interval_seconds, logger=logger, kwargs=kwargs
+            service_type=service_type, logger=logger, kwargs=kwargs
         )
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
@@ -117,23 +118,42 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 class LimesRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from limes."""
 
-    def __init__(self, service_type, refresh_interval_seconds, logger=logging.getLogger(__name__), **kwargs):
-        super(LimesRateLimitProvider, self).__init__(
-            service_type=service_type, refresh_interval_seconds=refresh_interval_seconds, logger=logger, kwargs=kwargs
+    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+        super(LimesRateLimitProvider, self).__init__(service_type=service_type, logger=logger, kwargs=kwargs)
+
+        # Cache rate limits in redis if refresh_interval_seconds != 0
+        self.__refresh_interval_seconds = kwargs.get('refresh_interval_seconds', 300)
+
+        timeout = kwargs.get('redis_timeout', 20)
+        # Use a thread-safe blocking connection pool.
+        conn_pool = redis.BlockingConnectionPool(
+            host=kwargs.get('redis_host', '127.0.0.1'),
+            port=kwargs.get('redis_port', 6379),
+            max_connections=kwargs.get('max_connections', 100),
+            timeout=kwargs.get('timeout', 20)
+        )
+        self.__redis = redis.StrictRedis(
+            connection_pool=conn_pool, decode_responses=True,
+            socket_timeout=timeout, socket_connect_timeout=timeout,
         )
 
-        # Limes provider will use memcached to store ratelimits for a configurable time (refresh_interval_seconds).
-        memcache_host = '127.0.0.1'
-        if kwargs:
-            memcache_host = kwargs.get('memcache_host', '127.0.0.1')
+        # For testing purposes.
+        cli = kwargs.get('keystone_client', None)
+        if cli:
+            self.__keystone_client = cli
+        else:
+            self.__keystone_client = self.__authenticate(
+                auth_url=kwargs.get('auth_url'),
+                username=kwargs.get('username'),
+                password=kwargs.get('password'),
+                domain_name=kwargs.get('domain_name'),
+                user_domain_name=kwargs.get('user_domain_name')
+            )
 
-        self.memcached = memcache.Client(
-            servers=[memcache_host],
-            debug=1
-        )
-
-        self.keystone = None
-        self.limes_base_url = None
+        limes_api_uri = kwargs.get(common.Constants.limes_api_uri)
+        if not limes_api_uri:
+            limes_api_uri = self.__get_limes_base_url()
+        self.__limes_base_url = limes_api_uri
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -145,7 +165,7 @@ class LimesRateLimitProvider(RateLimitProvider):
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 if not set
         """
-        # TODO: global rate limits via configuration file or limes constraints?
+        # TODO: Global rate limits via Limes.
         return -1
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
@@ -167,18 +187,19 @@ class LimesRateLimitProvider(RateLimitProvider):
         )
 
         # Find the current project by id.
-        project = self._find_project_by_id_in_list(scope, rate_limit_list.get('projects', []))
+        project = self.__find_project_by_id_in_list(scope, rate_limit_list.get('projects', []))
         # find the current service by type
-        service = self._find_service_by_type_in_list(self.service_type, project.get('services', []))
+        service = self.__find_service_by_type_in_list(self.service_type, project.get('services', []))
         # find the rates by target type URI
-        rate = self._find_rate_by_target_type_uri_in_list(target_type_uri, service.get('rates', []))
+        rate = self.__find_rate_by_target_type_uri_in_list(target_type_uri, service.get('rates', []))
         # finally find the limit
-        limit = self._find_limit_by_action_in_list(action, rate.get('actions', []))
+        limit = self.__find_limit_by_action_in_list(action, rate.get('actions', []))
         if limit:
             return limit
         return -1
 
-    def authenticate(self, auth_url, username, user_domain_name, password, domain_name):
+    def __authenticate(self, auth_url, username, user_domain_name, password, domain_name):
+        keystone_client = None
         try:
             self.logger.debug(
                 'attempting authentication using with '
@@ -195,25 +216,38 @@ class LimesRateLimitProvider(RateLimitProvider):
                 reauthenticate=True
             )
             sess = session.Session(auth=auth)
-            self.keystone = client.Client(session=sess)
+            keystone_client = keystonev3.Client(session=sess)
             self.logger.debug('successfully created keystone client and obtained token')
+
         except Exception as e:
             self.logger.error('failed to create keystone client: {0}'.format(str(e)))
 
-    def _get_limes_base_url(self, interface='public'):
+        finally:
+            return keystone_client
+
+    def __get_limes_base_url(self, interface='public'):
+        """
+        Get Limes endpoint from service catalog.
+
+        :param interface: the interface of the endpoint
+        :return: the limes endpoint
+        """
         limes_base_url = ''
         try:
             limes_service_id = None
 
-            service_list = self.keystone.services.list()
+            # Get list of services from keystone.
+            service_list = self.__keystone_client.services.list()
             if not service_list:
                 return
 
+            # Find Limes service by name in service catalog.
             for service in service_list:
-                if service.name == 'limes':
+                if service.name == common.Constants.limes_service_type:
                     limes_service_id = service.id
 
-            endpoint_list = self.keystone.endpoints.list()
+            # Get Limes endpoint.
+            endpoint_list = self.__keystone_client.endpoints.list()
             if not endpoint_list:
                 return
 
@@ -224,10 +258,12 @@ class LimesRateLimitProvider(RateLimitProvider):
                     break
 
             self.logger.warning("could not find limes base url in endpoints")
+
         except Exception as e:
             self.logger.error("error looking up limes base url: {0}".format(str(e)))
+
         finally:
-            self.limes_base_url = limes_base_url
+            return limes_base_url
 
     def list_ratelimits_for_projects_in_domain(self, project_id, domain_id=None):
         """
@@ -245,49 +281,52 @@ class LimesRateLimitProvider(RateLimitProvider):
         if not common.is_none_or_unknown(project_id):
             path += '/projects/{0}'.format(project_id)
 
+        # List only rate limits and filter for the current service.
         params = {
-            'service': self.service_type
+            'service': self.service_type,
+            'rates': 'only'
         }
-        self.logger.debug("getting rate limits from limes: {0}".format(path))
         return self._get(path, params)
 
-    def _get_rate_limit_from_limes_response(self, scope, action, target_type_uri, domain_id):
+    def __get_rate_limit_from_limes_response(self, scope, action, target_type_uri, domain_id):
         rate_limit = None
         try:
-            key = 'ratelimit_limes_{0}'.format(domain_id)
-            limes_ratelimits = self.memcached.get(key)
-            if not limes_ratelimits:
-                # Expired from memcached. Get fresh from limes and store again.
-                limes_ratelimits = self.limes.list_ratelimits_for_projects_in_domain(domain_id)
-                self.memcached.set(
-                    key=key, val=limes_ratelimits, time=self.limes_refresh_interval_seconds, noreply=True
-                )
+            key = 'limes_{0}'.format(
+                common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
+            )
 
-            # Parse limes response.
-            project_list = limes_ratelimits.get('projects', [])
-            service_list = self._find_service_in_project_list(project_list, scope)
-            rate_list = self._find_rate_in_service_list(service_list, self.service_type)
-            action_list = self._find_action_in_rate_list(rate_list, target_type_uri)
-            rate_limit = self._find_limit_in_action_list(action_list, action)
+            # Get rate limit from cache or get fresh from limes and store in cache.
+            rate_limit = self.__redis.get(name=key)
+            if not rate_limit:
+                # Get and parse rate limit from limes response.
+                limes_ratelimit_raw = self.list_ratelimits_for_projects_in_domain(project_id='', domain_id=domain_id)
+                project_list = limes_ratelimit_raw.get('projects', [])
+                service_list = self.__find_service_in_project_list(project_list, scope)
+                rate_list = self.__find_rate_in_service_list(service_list, self.service_type)
+                action_list = self.__find_action_in_rate_list(rate_list, target_type_uri)
+                rl = self.__find_limit_in_action_list(action_list, action)
+                # There might be no rate limit configured or we cannot get it due to an error.
+                if rl:
+                    self.__redis.setex(name=key, value=rl, time=self.__refresh_interval_seconds)
 
         except Exception as e:
             self.logger.error(
-                "could not extract limts for action '{0}', target_type_uri: '{1}', scope: '{2}' from limes: {3}"
+                "could not extract limits for action '{0}', target_type_uri: '{1}', scope: '{2}' from limes: {3}"
                 .format(action, target_type_uri, scope, str(e))
             )
         finally:
             return rate_limit
 
-    def _find_project_by_id_in_list(self, project_id, project_list):
+    def __find_project_by_id_in_list(self, project_id, project_list):
         return common.find_item_by_key_in_list(project_id, 'id', project_list)
 
-    def _find_service_by_type_in_list(self, service_type, service_list):
+    def __find_service_by_type_in_list(self, service_type, service_list):
         return common.find_item_by_key_in_list(service_type, 'type', service_list)
 
-    def _find_rate_by_target_type_uri_in_list(self, target_type_uri, rate_list):
+    def __find_rate_by_target_type_uri_in_list(self, target_type_uri, rate_list):
         return common.find_item_by_key_in_list(target_type_uri, 'targetTypeURI', rate_list)
 
-    def _find_limit_by_action_in_list(self, action_name, action_list):
+    def __find_limit_by_action_in_list(self, action_name, action_list):
         action = common.find_item_by_key_in_list(
             action_name, 'name', action_list,
             {'limit': -1}
@@ -296,26 +335,29 @@ class LimesRateLimitProvider(RateLimitProvider):
 
     def _get(self, path, params={}, headers={}):
         response_json = {}
+
+        if not params:
+            params = {}
+        if not headers:
+            headers = {}
+
         try:
-            if not params:
-                params = {}
-            if not headers:
-                headers = {}
-            self.limes_base_url = self.limes_base_url or self._get_limes_base_url()
-            if not self.limes_base_url:
-                self.logger.error("limes base path is unknown. get not get rate limits")
+            self.__limes_base_url = self.__limes_base_url or self.__get_limes_base_url()
+            if not self.__limes_base_url:
+                self.logger.error("limes base path is unknown. cannot get rate limits")
                 return None
 
-            # only list rates
-            params['rates'] = True
+            # Set X-AUTH-TOKEN header.
+            headers['X-AUTH-TOKEN'] = self.__keystone_client.session.get_token()
 
-            # set X-AUTH-TOKEN header
-            headers['X-AUTH-TOKEN'] = self.keystone.session.get_token()
-            url = self.limes_base_url + path
-
-            resp_raw = requests.get(url=url, params=params, headers=headers)
+            resp_raw = requests.get(
+                url=common.build_uri(self.__limes_base_url, path),
+                params=params,
+                headers=headers
+            )
             response_json = resp_raw.json()
         except Exception as e:
             self.logger.error("error while getting rate limits from limes: {0}".format(str(e)))
+
         finally:
             return response_json
