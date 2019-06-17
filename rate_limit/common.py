@@ -161,9 +161,23 @@ def to_int(raw_value, default=0):
     :return: the value as int or None
     """
     try:
-        val = int(float(raw_value))
-        return val
+        return int(float(raw_value))
     except (ValueError, TypeError):
+        return default
+
+
+def listitem_to_int(listthing, idx, default=0):
+    """
+    Safely get an item by index from a list.
+
+    :param listthing: the list
+    :param idx: the index of the item
+    :param default: the default value if item not found
+    :return: the item as int or the default value
+    """
+    try:
+        return to_int(listthing[idx], default)
+    except (IndexError, TypeError):
         return default
 
 

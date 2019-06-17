@@ -151,11 +151,7 @@ class RedisBackend(Backend):
             )
             return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
         except Exception as e:
-            print "####################################################################"
-            print e
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
-        # TODO: REMOVE
-        return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
 
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         now = time.time()
@@ -167,55 +163,29 @@ class RedisBackend(Backend):
         # Make sure it's an int.
         max_calls_int = int(max_calls)
 
-        print "------------------------------------------------------------------------------------------------------------"
-        print key, lookback_time_max, now_int, max_calls_int
-
         # Use the SHA1 digest of the LUA script and use redis internal caching instead of sending it every time.
         try:
-            remaining, timestamps = self.__redis.evalsha(
-                self.__rate_limit_script_sha, 5, key, lookback_time_max, now_int, max_calls_int, window_seconds_int
+            result = self.__redis.evalsha(
+                self.__rate_limit_script_sha, 6, key, lookback_time_max, now_int,
+                max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
             )
+        # If the script is not (yet) present send and evaluate it.
         except redis.exceptions.NoScriptError:
-            remaining, timestamps = self.__redis.eval(
-                self.__rate_limit_script, 5, key, lookback_time_max, now_int, max_calls_int, window_seconds_int
+            result = self.__redis.eval(
+                self.__rate_limit_script, 6, key, lookback_time_max, now_int,
+                max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
             )
 
-        print "------------------------------------------------------------------------------------------------------------"
-        print remaining, timestamps
+        # Parse result list safely.
+        remaining = common.list_to_int(result, idx=0)
+        retry_after_seconds = common.list_to_int(result, idx=1)
 
-        return None
-
-        timestamps = []
-        if result and len(result) >= 1:
-            timestamps = result[1]
-
-        # Check whether rate limit is exhausted.
-        remaining = int(max_calls - len(timestamps))
         # Return here if we still have remaining requests.
         if remaining > 0:
             return None
 
-
-        # Check if the request should be suspended.
-        # Get seconds until another request would be possible according to rate limit. Always round up.
-        timestamp0 = now_int
-        if len(timestamps) > 0:
-            timestamp0 = int(timestamps[0])
-
-        retry_after_seconds = int(math.ceil(timestamp0 + window_seconds_int - now_int) / 1000)
-
-        print "------------------------------------------------------------------------------------------------------------"
-        print "timestamps: {0}".format([time.strftime("%H:%M:%S.%s", time.localtime(float(t)/1000)) for t in timestamps])
-        print "now: {0}".format(time.strftime("%H:%M:%S.%s", time.localtime(now)))
-        print "timestamp0: {0}".format(time.strftime("%H:%M:%S.%s", time.localtime(float(timestamp0)/1000)))
-        print "window_seconds: {0}".format(window_seconds)
-        print "lookback_time_max: {0}".format(time.strftime("%H:%M:%S.%s", time.localtime(lookback_time_max/1000)))
-        print "remaining: {0}".format(remaining)
-        print "rate: {0}".format(max_rate_string)
-        print "retry_after_seconds: {0}".format(retry_after_seconds)
-
         # Suspend the current request if its it has to wait no longer than max_sleep_time_seconds.
-        if retry_after_seconds <= self.__max_sleep_time_seconds:
+        elif retry_after_seconds <= self.__max_sleep_time_seconds:
             # Log the current request if it has to be suspended for at least log_sleep_time_seconds.
             if retry_after_seconds >= self.__log_sleep_time_seconds:
                 self.logger.info(

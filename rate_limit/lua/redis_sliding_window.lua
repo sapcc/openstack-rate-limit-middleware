@@ -1,26 +1,46 @@
-local key, lookback_timestamp_max_int, now_int, max_calls_int, window_seconds_int
+local key, lookback_timestamp_max_int, now_int, max_calls_int, window_seconds_int, max_sleep_time_seconds_int
 key = tostring(KEYS[1])
 lookback_timestamp_max_int = tonumber(KEYS[2])
 now_int = tonumber(KEYS[3])
 max_calls_int = tonumber(KEYS[4])
 window_seconds_int = tonumber(KEYS[5])
+max_sleep_time_seconds_int = tonumber(KEYS[6])
 -- Rate limit algorithm inspired by https://engineering.classdojo.com/blog/2015/02/06/rolling-rate-limiter
 -- While this works well for rate limiting we need a slightly more advanced lua script for shaping the traffic,
 -- like allowing burst requests with delayed/not delayed execution.
 -- Remove all API calls that are older than the sliding window.
 redis.call('zremrangebyscore', key, '-inf', lookback_timestamp_max_int)
--- List of API calls during sliding window.
-local reqs = redis.call('zrange', key, 0, -1)
-local count = 0
-for _ in pairs(reqs) do count = count + 1 end
+-- List of API calls in the current sliding window.
+local reqs, remaining, timestamp0, retry_after_seconds
+reqs = redis.call('zrange', key, 0, -1)
 -- Get number of remaining requests.
-local remaining = max_calls_int - count
--- Add timestamp of current request if there are remaining requests.
+remaining = tonumber(max_calls_int - #reqs)
+
+-- Add timestamp of current request if there are remaining requests (aka rate limit not reached).
 if remaining > 0 then
     -- Add timestamp if we still have remaining requests.
     redis.call('zadd', key, now_int, now_int)
     -- Reset expiry time for key.
     redis.call('expire', key, window_seconds_int)
+    -- Return the number of remaining requests. Retry after not relevant.
+    return {remaining, 0}
+end
+
+-- Rate limit reached but check if the requests can be suspended.
+-- Get timestamp of 1st requests in current window.
+timestamp0 = reqs[1] or now_int
+-- Calculate how long the request would need to be suspended.
+retry_after_seconds = tonumber(math.ceil(timestamp0 + window_seconds_int - now_int) / 1000)
+-- Can be suspended?
+if retry_after_seconds <= max_sleep_time_seconds_int then
+    -- Count current request.
+    remaining = remaining -1
+    -- Time when requests will be executed.
+    now_int = tonumber(now_int + retry_after_seconds * 1000)
+    -- Add timestamp to the list.
+    redis.call('zadd', key, now_int, now_int)
+    -- Reset expiry time for key.
+    redis.call('expire', key, window_seconds_int)
 end
 -- Returns the number of remaining requests and the list of timestamps.
-return remaining, reqs
+return {remaining, retry_after_seconds}
