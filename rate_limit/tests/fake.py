@@ -52,9 +52,14 @@ class FakeApp(object):
 class FakeKeystoneclient(object):
     def __init__(self):
         self.session = FakeSession()
-        self.services = []
+        self.services = FakeServiceManager()
 
 
 class FakeSession(object):
     def get_token(self):
         return "OS_TOKEN"
+
+
+class FakeServiceManager(object):
+    def list(self):
+        return []
