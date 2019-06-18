@@ -94,7 +94,7 @@ class RedisBackend(Backend):
             )
             return
         self.__rate_limit_script = script
-        self.__rate_limit_script_sha = hashlib.sha1(script).hexdigest()
+        self.__rate_limit_script_sha = hashlib.sha1(script.encode('utf-8')).hexdigest()
 
     def is_available(self):
         """Check whether the redis is available and supported."""
