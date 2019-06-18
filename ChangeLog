@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* it's stable
 * Redis traffic shaping (#11)
 * Update README.md
 * closed #8
