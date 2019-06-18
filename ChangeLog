@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* Redis traffic shaping (#11)
+* Update README.md
 * closed #8
 * nothing to see
 * fix test for membership
