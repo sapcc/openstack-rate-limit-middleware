@@ -1,6 +1,10 @@
 CHANGES
 =======
 
+1.0.0
+-----
+
+* it's stable
 * it's stable
 * Redis traffic shaping (#11)
 * Update README.md

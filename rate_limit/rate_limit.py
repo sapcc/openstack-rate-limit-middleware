@@ -208,7 +208,7 @@ class OpenStackRateLimitMiddleware(object):
             return cls(app, conf)
         return limiter
 
-    def _rate_limit(self, scope, action, target_type_uri):
+    def _rate_limit(self, scope, action, target_type_uri, **kwargs):
         """
         Check the whitelist, blacklist, global and local ratelimits.
 
@@ -241,15 +241,22 @@ class OpenStackRateLimitMiddleware(object):
                 self.cadf_service_name, target_type_uri
             )
 
+        # The key of the scope in the format $domainName/projectName.
+        scope_name_key = kwargs.get('scope_name_key', None)
+
         # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
-        if self.is_scope_whitelisted(scope):
-            self.logger.debug("{0} is whitelisted. skipping rate limit".format(scope))
+        if self.is_scope_whitelisted(scope) or self.is_scope_whitelisted(scope_name_key):
+            self.logger.debug(
+                "scope {0} (key: {1}) is whitelisted. skipping rate limit".format(scope, scope_name_key)
+            )
             self.metricsClient.increment('requests_whitelisted_total', tags=metric_labels)
             return None
 
         # Check blacklist. If scope is blacklisted return BlacklistResponse.
-        if self.is_scope_blacklisted(scope):
-            self.logger.debug("{0} is blacklisted. returning BlacklistResponse".format(scope))
+        if self.is_scope_blacklisted(scope) or self.is_scope_blacklisted(scope_name_key):
+            self.logger.debug(
+                "scope {0} (key: {1}) is blacklisted. returning BlacklistResponse".format(scope, scope_name_key)
+            )
             self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
             return self.blacklist_response
 
@@ -331,7 +338,10 @@ class OpenStackRateLimitMiddleware(object):
                 return
 
             # Returns a RateLimitResponse or BlacklistResponse or None, in which case the original response is returned.
-            rate_limit_response = self._rate_limit(scope, action, target_type_uri)
+            rate_limit_response = self._rate_limit(
+                scope=scope, action=action, target_type_uri=target_type_uri,
+                scope_name_key=self._get_scope_name_key_from_environ(environ),
+            )
             if rate_limit_response:
                 rate_limit_response.set_environ(environ)
                 resp = rate_limit_response
@@ -423,6 +433,22 @@ class OpenStackRateLimitMiddleware(object):
         if not common.is_none_or_unknown(env_scope):
             scope = env_scope
         return scope
+
+    def _get_scope_name_key_from_environ(self, environ):
+        """
+        Attempt to build the key '$domainName/$projectName' from the WATCHER attributes found in the request environ
+
+        :param environ: the request environ
+        :return: the key or None
+        """
+        _domain_name = environ.get('WATCHER.INIITATOR_PROJECT_DOMAIN_NAME', None)
+        _project_domain_name = environ.get('WATCHER.INIITATOR_PROJECT_DOMAIN_NAME', None)
+        project_name = environ.get('WATCHER.INITIATOR_PROJECT_NAME', None)
+        domain_name = _project_domain_name or _domain_name
+
+        if common.is_none_or_unknown(project_name) or common.is_none_or_unknown(domain_name):
+            return None
+        return '{0}/{1}'.format(domain_name, project_name)
 
     def _set_service_type_and_name(self, environ):
         """

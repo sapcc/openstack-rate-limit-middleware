@@ -14,7 +14,6 @@
 
 import unittest
 import os
-import json
 import time
 
 from rate_limit import OpenStackRateLimitMiddleware
@@ -43,20 +42,71 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         self.is_setup = True
 
     def test_is_scope_whitelisted(self):
-        self.assertTrue(
-            self.app.is_scope_whitelisted("1233456789abcdef")
-        )
-        self.assertFalse(
-            self.app.is_scope_whitelisted("abcdef")
-        )
+        stimuli = [
+            {
+                'key': '1233456789abcdef',
+                'expected': True
+            },
+            {
+                'key': 'myDomain/myProject',
+                'expected': True
+            },
+            {
+                'key': '1233456789abcdef1233456789',
+                'expected': True,
+            },
+            {
+                'key': 'myDomain',
+                'expected': False,
+            },
+            {
+                'key': 'myDomain/something',
+                'expected': False,
+            },
+        ]
+        for itm in stimuli:
+            key = itm.get('key')
+            expected = itm.get('expected')
+
+            self.assertEqual(
+                self.app.is_scope_whitelisted(key),
+                expected,
+                "scope '{0}' should be whitelisted: {1}".format(key, expected)
+            )
 
     def test_is_scope_blacklisted(self):
-        self.assertTrue(
-            self.app.is_scope_blacklisted("abcdef1233456789")
-        )
-        self.assertFalse(
-            self.app.is_scope_blacklisted("abcdef")
-        )
+        stimuli = [
+            {
+                'key': 'abcdef1233456789',
+                'expected': True
+            },
+            {
+                'key': 'myDomain/myProject',
+                'expected': True
+            },
+            {
+                'key': 'abcdef',
+                'expected': False,
+            },
+            {
+                'key': 'myDomain',
+                'expected': False,
+            },
+            {
+                'key': 'myDomain/something',
+                'expected': False,
+            },
+        ]
+
+        for itm in stimuli:
+            key = itm.get('key')
+            expected = itm.get('expected')
+
+            self.assertEqual(
+                self.app.is_scope_blacklisted(key),
+                expected,
+                "scope '{0}' should be blacklisted: {1}".format(key, expected)
+            )
 
     def test_get_rate_limit(self):
         stimuli = [

@@ -107,8 +107,9 @@ rates:
 
 ## Black- & Whitelist
 
-This middleware allows configuring a black- and whitelist for certain scopes.
-A scope might be an (initiator/target) project UUID or an initiator host address.   
+This middleware allows configuring a black- and whitelist for certain scopes and keys.  
+A `scope` might be an (initiator/target) project UUID or an initiator host address. 
+A `key` refers to a project specified by name in the format `$projectDomainName/$projectName`.  
 If a scope is blacklisted, the middleware immediately returns the configured blacklist response. 
 Requests in a whitelisted scope are not rate limited.  
 Also see the [examples](../etc/).  
@@ -117,10 +118,12 @@ Also see the [examples](../etc/).
 # List of blacklisted scopes (project UUID, host address).
 blacklist:
     - <scope>
+    - <key>
 
 # List of whitelisted scoped (project UUID, host address).
 whitelist:
     - <scope>
+    - <key>
 ```
 
 ## Customize responses

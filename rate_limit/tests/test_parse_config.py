@@ -28,12 +28,12 @@ class TestParseConfig(unittest.TestCase):
 
         self.assertEqual(
             conf['blacklist'],
-            ["abcdef1233456789", "abcdef1233456789abcdef", "abcdef1233456789"]
+            ["abcdef1233456789", "abcdef1233456789abcdef", "abcdef1233456789", "myDomain/myProject"]
         )
 
         self.assertEqual(
             conf['whitelist'],
-            ["1233456789abcdef", "1233456789abcdef1233456789"]
+            ["1233456789abcdef", "1233456789abcdef1233456789", "myDomain/myProject"]
         )
 
         self.assertEqual(
