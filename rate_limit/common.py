@@ -53,8 +53,6 @@ class Constants(object):
     # Type of the Limes service as found in token service catalog.
     limes_service_type = 'limes'
 
-    backend_redis = 'redis'
-
     # The limit for the current request in the format <n>r/<m><t>.
     # Read: Limit to n requests per m <unit>. Valid interval units are `s, m, h, d`.
     header_ratelimit_limit = 'X-RateLimit-Limit'

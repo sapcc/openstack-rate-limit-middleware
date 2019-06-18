@@ -60,9 +60,7 @@ class OpenStackRateLimitMiddleware(object):
         self.backend_host = wsgi_config.get('backend_host', '127.0.0.1')
         self.backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
         self.logger.debug(
-            "using backend '{0}' on '{1}:{2}'".format(
-                common.Constants.backend_redis, self.backend_host, self.backend_port
-            )
+            "using backend '{0}' on '{1}:{2}'".format('redis', self.backend_host, self.backend_port)
         )
         backend_timeout_seconds = common.to_int(self.wsgi_config.get('backend_timeout_seconds'), 20)
         backend_max_connections = common.to_int(self.wsgi_config.get('backend_max_connections'), 100)
