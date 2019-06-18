@@ -1,11 +1,15 @@
 Limes integration
 =================
 
-[Limes](https://github.com/sapcc/limes) currently reports resource quota and usage for a project as described [here](https://github.com/sapcc/limes/blob/master/docs/users/api-v1-specification.md#get-v1domainsdomain_idprojectsproject_id).
-Add rate limits by extending the JSON document as follows.
+Global rate limits and defaults for each project can be defined via a [configuration file](./configure.md).  
+However, the configuration file does not allow defining rate limits specific for a project.  
+This can only be done using [Limes](https://github.com/sapcc/limes) as outlined below. 
+Limes reports rate limits for a project as described [here](https://github.com/sapcc/limes/blob/master/docs/users/api-v1-specification.md#get-v1domainsdomain_idprojectsproject_id).
+
+Note the usage of the `rate=only` query parameter to only report rate limits.
 
 Example:  
-**GET /v1/domains/:domain_id/projects/:project_id**
+**GET /v1/domains/:domain_id/projects/:project_id?rates=only**
 ```
 {
     "projects": [
@@ -15,12 +19,7 @@ Example:
             "services": [
                 {
                     "type": "object-store",
-                    "area": "storage",
-                    "resources": [
-                        {
-                        ...
-                        }
-                    ],
+                    "area": "storage"
                     "rates": [
                         {
                             "targetTypeURI": "account/container",
@@ -43,7 +42,7 @@ Example:
 }
 ```
 
-**Defaults** for each project will be deployed using limes' constraints.
+**Defaults** for each project may be deployed using limes' constraints.
 
 ```
 limes: 

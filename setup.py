@@ -16,4 +16,8 @@ import setuptools
 
 setuptools.setup(
     setup_requires=['pbr'],
-    pbr=True)
+    pbr=True,
+    data_files=[
+        ('lua', ['rate_limit/lua/redis_sliding_window.lua'])
+    ]
+)

@@ -33,6 +33,7 @@ X-RateLimit-Reset: 60
 X-Retry-After: 60
 ```
 
+
 # Metrics
 
 This middleware emits the following [Prometheus metrics](https://prometheus.io/docs/concepts/metric_types) via [StatsD](https://github.com/DataDog/datadogpy).  
@@ -53,3 +54,26 @@ All metrics come with the following labels:
 | action          | The CADF action of the request. |
 | scope           | The scope of the request. |
 | target_type_uri | The CADF target type URI of the request. |
+
+
+# Burst requests
+
+This middleware is capable of handling a burst of requests as described hereinafter.
+
+## With delay
+
+This middleware handles requests that would exceed the configured rate by delaying them until the next possible slot but not longer than `max_sleep_time_seconds`.
+See the [WSGI section](install.md) on how to configure this. 
+
+Example:  
+Given a `rate limit=1r/m` and a `max_sleep_time_seconds=20`, the 1st request at t<sub>1</sub>=0 would be processed just fine. 
+However, a 2nd request received within the one minute window after the 1st request would exceed the rate limit.
+Assuming it's received at t<sub>2</sub>=45, the request would not be rejected but suspended for 15 seconds and processed afterwards so that the rate of `1r/m` is not exceeded. 
+
+However, this behaviour might let your application appear slow for a user. 
+It can be disabled by setting `max_sleep_time_seconds=0` and using burst requests without delay as described below.
+
+## Without delay
+
+Handling burst requests without delay 
+

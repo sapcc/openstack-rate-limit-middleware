@@ -31,11 +31,11 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
         limes_provider = provider.LimesRateLimitProvider(
             service_type=SERVICE_TYPE,
             refresh_interval_seconds=20,
+            keystone_client=fake.FakeKeystoneclient(),
+            limes_api_url='https://localhost:8887'
         )
-        limes_provider.keystone = fake.FakeKeystoneclient()
-        limes_provider.limes_base_url = 'https://localhost:8887'
 
-        # mock requests
+        # Mock requests to Limes.
         def _fake_get(path, params={}, headers={}):
             f = open(LIMESRATELIMITS)
             json_data = f.read()
@@ -55,14 +55,14 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
         rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             'abcdef1233456789', 'update', 'account/container/object'
         )
-        self.assertEqual(rate_limit, '10r/m', "the rate limit should be '10r/m'")
+        self.assertEqual(rate_limit, '10r/m', "the rate limit should be '10r/m' but got '{0}'".format(rate_limit))
 
         rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             '1233456789abcdef1233456789', 'delete', 'account/container'
         )
-        self.assertEqual(rate_limit, '2r/10m', "the rate limit should be '2r/10m'")
+        self.assertEqual(rate_limit, '2r/10m', "the rate limit should be '2r/10m' but got '{0}'".format(rate_limit))
 
         rate_limit = self.watcher.ratelimit_provider.get_local_rate_limits(
             'non_existent_project_id', 'delete', 'account/container'
         )
-        self.assertEqual(rate_limit, -1, "the rate limit should be '-1'")
+        self.assertEqual(rate_limit, -1, "the rate limit should be '-1' but got '{0}'".format(rate_limit))

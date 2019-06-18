@@ -4,7 +4,6 @@ python-keystoneclient
 keystoneauth1>=3.1.0 # Apache-2.0
 redis~=3.1.0
 requests>=2.14.2 # Apache-2.0
-python-memcached~=1.59
 six
 WebOb>=1.7.1 # MIT
 PyYAML

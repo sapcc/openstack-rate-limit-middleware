@@ -52,6 +52,7 @@ class FakeApp(object):
 class FakeKeystoneclient(object):
     def __init__(self):
         self.session = FakeSession()
+        self.services = []
 
 
 class FakeSession(object):

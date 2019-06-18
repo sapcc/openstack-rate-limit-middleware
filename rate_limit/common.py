@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import time
 import yaml
 
@@ -38,16 +39,19 @@ class Constants(object):
     log_sleep_time_seconds = 'log_sleep_time_seoncds'
     unknown = 'unknown'
 
-    # rate limit by ..
+    # Rate limit by ..
     initiator_project_id = 'initiator_project_id'
     initiator_host_address = 'initiator_host_address'
     target_project_id = 'target_project_id'
 
-    # fetch rate limits from limes every t seconds
-    limes_refresh_interval_seconds = 300
+    # Interval in which cached rate limits are refreshed in seconds.
+    limes_refresh_interval_seconds = 'limes_refresh_interval_seconds'
 
-    backend_redis = 'redis'
-    backend_memcache = 'memcache'
+    # The URI of the Limes API.
+    limes_api_uri = 'limes_api_uri'
+
+    # Type of the Limes service as found in token service catalog.
+    limes_service_type = 'limes'
 
     # The limit for the current request in the format <n>r/<m><t>.
     # Read: Limit to n requests per m <unit>. Valid interval units are `s, m, h, d`.
@@ -148,3 +152,69 @@ def load_config(cfg_file):
         raise errors.ConfigError("Failed to load configuration from file %s: %s" % (cfg_file, str(e)))
     finally:
         return yaml_conf
+
+
+def to_int(raw_value, default=0):
+    """
+    Safely parse a raw value and convert to an integer.
+    If that fails return the default value.
+
+    :param raw_value: the raw value
+    :param default: the fallback value if conversion fails
+    :return: the value as int or None
+    """
+    try:
+        return int(float(raw_value))
+    except (ValueError, TypeError):
+        return default
+
+
+def listitem_to_int(listthing, idx, default=0):
+    """
+    Safely get an item by index from a list.
+
+    :param listthing: the list
+    :param idx: the index of the item
+    :param default: the default value if item not found
+    :return: the item as int or the default value
+    """
+    try:
+        return to_int(listthing[idx], default)
+    except (IndexError, TypeError):
+        return default
+
+
+def load_lua_script(filename, foldername="lua"):
+    """
+    Load a lua scripts.
+
+    :param filename: the filename of the script
+    :param foldername: the name of the folder containing the script
+    :return: the content or None
+    """
+    content = None
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "{0}/{1}".format(foldername, filename)
+    )
+    try:
+        f = open(path)
+        content = f.read()
+        f.close()
+    except IOError:
+        return None
+    finally:
+        return content
+
+
+def build_uri(base, path):
+    """
+    Build the URI using base and path.
+
+    :param base:
+    :param path:
+    :return:
+    """
+    base = base.rstrip('/')
+    path = path.lstrip('/')
+    return base + '/' + path

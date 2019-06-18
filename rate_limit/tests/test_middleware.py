@@ -37,7 +37,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             app=fake.FakeApp(),
             wsgi_config={
                 'config_file': SWIFTCONFIGPATH,
-                'max_sleep_time_seconds': 15,
+                'max_sleep_time_seconds': 20,
             }
         )
         self.is_setup = True
@@ -114,7 +114,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
             time.sleep(1)
             is_equal, msg = response_equal(expected[i], result)
-            self.assertTrue(is_equal, msg)
+            self.assertTrue(is_equal, "test #{0} failed: {1}".format(i, msg))
 
 
 def response_equal(expected, got):

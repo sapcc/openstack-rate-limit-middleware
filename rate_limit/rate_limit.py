@@ -45,7 +45,7 @@ class OpenStackRateLimitMiddleware(object):
 
         # StatsD is used to emit metrics.
         statsd_host = wsgi_config.get('statsd_host', '127.0.0.1')
-        statsd_port = wsgi_config.get('statsd_port', 9125)
+        statsd_port = common.to_int(wsgi_config.get('statsd_port', 9125))
         statsd_prefix = wsgi_config.get('statsd_prefix', 'openstack_ratelimit')
 
         # Init StatsD client.
@@ -57,14 +57,13 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get backend configuration.
         # Backend is used to store count of requests.
-        backend_type = wsgi_config.get('backend', 'redis')
-        self.logger.debug('using backend: {0}'.format(backend_type))
-
-        backend_host = wsgi_config.get('backend_host', '127.0.0.1')
-        self.logger.debug('using backend host {0}'.format(backend_host))
-
-        backend_port = wsgi_config.get('backend_port', '6379')
-        self.logger.debug('using backend port {0}'.format(backend_port))
+        self.backend_host = wsgi_config.get('backend_host', '127.0.0.1')
+        self.backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
+        self.logger.debug(
+            "using backend '{0}' on '{1}:{2}'".format('redis', self.backend_host, self.backend_port)
+        )
+        backend_timeout_seconds = common.to_int(self.wsgi_config.get('backend_timeout_seconds'), 20)
+        backend_max_connections = common.to_int(self.wsgi_config.get('backend_max_connections'), 100)
 
         # Load configuration file.
         self.config = {}
@@ -89,8 +88,8 @@ class OpenStackRateLimitMiddleware(object):
             self.cadf_service_name = common.CADF_SERVICE_TYPE_PREFIX_MAP.get(self.service_type, None)
 
         # Use configured parameters or ensure defaults.
-        max_sleep_time_seconds = int(self.wsgi_config.get(common.Constants.max_sleep_time_seconds, 20))
-        log_sleep_time_seconds = int(self.wsgi_config.get(common.Constants.log_sleep_time_seconds, 10))
+        max_sleep_time_seconds = common.to_int(self.wsgi_config.get(common.Constants.max_sleep_time_seconds), 20)
+        log_sleep_time_seconds = common.to_int(self.wsgi_config.get(common.Constants.log_sleep_time_seconds), 10)
 
         # Setup ratelimit and blacklist response.
         self._setup_response()
@@ -109,25 +108,16 @@ class OpenStackRateLimitMiddleware(object):
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
-        # Initializes the backend as configured. Defaults to redis.
-        if backend_type == common.Constants.backend_memcache:
-            self.backend = rate_limit_backend.MemcachedBackend(
-                host=backend_host,
-                port=backend_port,
-                rate_limit_response=self.ratelimit_response,
-                max_sleep_time_seconds=max_sleep_time_seconds,
-                log_sleep_time_seconds=log_sleep_time_seconds,
-                logger=self.logger
-            )
-        else:
-            self.backend = rate_limit_backend.RedisBackend(
-                host=backend_host,
-                port=backend_port,
-                rate_limit_response=self.ratelimit_response,
-                max_sleep_time_seconds=max_sleep_time_seconds,
-                log_sleep_time_seconds=log_sleep_time_seconds,
-                logger=self.logger
-            )
+        self.backend = rate_limit_backend.RedisBackend(
+            host=self.backend_host,
+            port=self.backend_port,
+            rate_limit_response=self.ratelimit_response,
+            max_sleep_time_seconds=max_sleep_time_seconds,
+            log_sleep_time_seconds=log_sleep_time_seconds,
+            logger=self.logger,
+            timeout_seconds=backend_timeout_seconds,
+            max_connections=backend_max_connections,
+        )
 
         # Test if the backend is ready.
         is_available, msg = self.backend.is_available()
@@ -137,9 +127,7 @@ class OpenStackRateLimitMiddleware(object):
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
         configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
-            service_type=self.service_type,
-            refresh_interval_seconds=None,
-            logger=self.logger
+            service_type=self.service_type, logger=self.logger
         )
         # Force load of rate limits from configuration file.
         configuration_ratelimit_provider.read_rate_limits_from_config(config_file)
@@ -193,25 +181,21 @@ class OpenStackRateLimitMiddleware(object):
     def __setup_limes_ratelimit_provider(self):
         """Setup Limes as provider for rate limits. If not successful fallback to configuration file."""
         try:
-            limes_refresh_interval_seconds = self.wsgi_config.get(
-                'limes_refresh_interval_seconds', common.Constants.limes_refresh_interval_seconds
-            )
-
             limes_ratelimit_provider = provider.LimesRateLimitProvider(
                 service_type=self.service_type,
-                refresh_interval_seconds=limes_refresh_interval_seconds,
-                logger=self.logger
-            )
-
-            limes_ratelimit_provider.authenticate(
-                auth_url=self.wsgi_config.get('auth_url'),
+                logger=self.logger,
+                redis_host=self.backend_host,
+                redis_port=self.backend_port,
+                refresh_interval_seconds=self.wsgi_config.get(common.Constants.limes_refresh_interval_seconds, 300),
+                limes_api_uri=self.wsgi_config.get(common.Constants.limes_api_uri),
+                auth_url=self.wsgi_config.get('identity_auth_url'),
                 username=self.wsgi_config.get('username'),
                 user_domain_name=self.wsgi_config.get('user_domain_name'),
                 password=self.wsgi_config.get('password'),
                 domain_name=self.wsgi_config.get('domain_name')
             )
-
             self.ratelimit_provider = limes_ratelimit_provider
+
         except Exception as e:
             self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
 
@@ -346,6 +330,7 @@ class OpenStackRateLimitMiddleware(object):
                 )
                 return
 
+            # Returns a RateLimitResponse or BlacklistResponse or None, in which case the original response is returned.
             rate_limit_response = self._rate_limit(scope, action, target_type_uri)
             if rate_limit_response:
                 rate_limit_response.set_environ(environ)
@@ -421,18 +406,20 @@ class OpenStackRateLimitMiddleware(object):
         """
         Get the scope from the requests environ.
         The scope is configurable and may be the target|initiator project uid or the initiator host address.
+        Default to initiator project ID.
 
         :param environ: the requests environ
         :return: the scope
         """
-        scope = env_scope = None
+        scope = None
         if self.rate_limit_by == common.Constants.target_project_id:
             env_scope = environ.get('WATCHER.TARGET_PROJECT_ID', None)
         elif self.rate_limit_by == common.Constants.initiator_host_address:
             env_scope = environ.get('WATCHER.INITIATOR_HOST_ADDRESS', None)
         else:
             env_scope = environ.get('WATCHER.INITIATOR_PROJECT_ID', None)
-        # make sure the scope is not 'unknown'
+
+        # Ensure the scope is not 'unknown'.
         if not common.is_none_or_unknown(env_scope):
             scope = env_scope
         return scope
@@ -444,7 +431,7 @@ class OpenStackRateLimitMiddleware(object):
 
         :param environ: the request WSGI environment
         """
-        # get service type from environ
+        # Get service type from request environ.
         if common.is_none_or_unknown(self.service_type):
             svc_type = environ.get('WATCHER.SERVICE_TYPE')
             if not common.is_none_or_unknown(svc_type):

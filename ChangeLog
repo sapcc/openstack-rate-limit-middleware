@@ -1,6 +1,16 @@
 CHANGES
 =======
 
+* closed #8
+* nothing to see
+* fix test for membership
+* fix test
+* fix the fix
+* fix import
+* rm unused import
+* fix test
+* fix pep8
+* docs
 * fix blacklisting and suspending requests; extend wsgi configuration for max\_sleep\_time\_seconds, log\_sleep\_time\_seconds
 * fix retry-after header value
 * align metric labels with watcher middleware; verify backend on start; update examples in docs
