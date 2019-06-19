@@ -57,6 +57,13 @@ backend_host:                   <string> (default: 127.0.0.1)
 # Port for redis backend.
 backend_port:                   <int> (default: 6379)
 
+# Maximum connections for redis connection pool.
+backend_max_connections:        <int> (default: 100)
+
+# Timeout for obtaining a connection to the backend.
+# Skips rate limit on timeout.
+backend_timeout_seconds:        <int> (default: 20)
+
 ## Configure Limes as provider for rate limits.
 # See the limes guide for more details.
 limes_enabled:                  <bool> (default: false)

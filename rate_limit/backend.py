@@ -64,19 +64,18 @@ class RedisBackend(Backend):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
-            rate_limit_response=rate_limit_response,
-            max_sleep_time_seconds=max_sleep_time_seconds,
-            log_sleep_time_seconds=log_sleep_time_seconds,
             logger=logger,
             kwargs=kwargs
         )
+
         self.__host = host
         self.__port = port
         self.__max_sleep_time_seconds = max_sleep_time_seconds
         self.__log_sleep_time_seconds = log_sleep_time_seconds
         self.__rate_limit_response = rate_limit_response
-        self.__timeout = kwargs.get('timeout', 20)
+        self.__timeout = kwargs.get('timeout_seconds', 20)
         self.__max_connections = kwargs.get('max_connections', 100)
+
         # Use a thread-safe blocking connection pool.
         conn_pool = redis.BlockingConnectionPool(
             host=host, port=port, max_connections=self.__max_connections, timeout=self.__timeout,
@@ -121,14 +120,14 @@ class RedisBackend(Backend):
     def __is_redis_version_supported(self):
         """
         Check whether the redis version is supported by this middleware.
-        We require at least redis version 3.0.0 .
+        We require at least redis version 5.0.0 .
 
         :return: bool
         """
         version = self.__redis.info().get('redis_version', None)
         if not version:
             return False
-        return bool(StrictVersion(version) >= StrictVersion('3.0.0'))
+        return bool(StrictVersion(version) >= StrictVersion('5.0.0'))
 
     def rate_limit(self, scope, action, target_type_uri, max_rate_string):
         """
@@ -164,14 +163,14 @@ class RedisBackend(Backend):
         # Use the SHA1 digest of the LUA script and use redis internal caching instead of sending it every time.
         try:
             result = self.__redis.evalsha(
-                self.__rate_limit_script_sha, 6, key, lookback_time_max, now_int,
-                max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
+                self.__rate_limit_script_sha, 6,
+                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
             )
-        # If the script is not (yet) present send and evaluate it.
+        # If the script is not (yet) present submit to redis and evaluate it.
         except redis.exceptions.NoScriptError:
             result = self.__redis.eval(
-                self.__rate_limit_script, 6, key, lookback_time_max, now_int,
-                max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
+                self.__rate_limit_script, 6,
+                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
             )
 
         # Parse result list safely.
