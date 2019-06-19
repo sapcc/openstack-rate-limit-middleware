@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+* fix test with FakeKeystoneclient
+* fixes #10
+
 1.0.0
 -----
 

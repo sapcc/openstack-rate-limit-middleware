@@ -441,8 +441,8 @@ class OpenStackRateLimitMiddleware(object):
         :param environ: the request environ
         :return: the key or None
         """
-        _domain_name = environ.get('WATCHER.INIITATOR_PROJECT_DOMAIN_NAME', None)
-        _project_domain_name = environ.get('WATCHER.INIITATOR_PROJECT_DOMAIN_NAME', None)
+        _domain_name = environ.get('WATCHER.INITIATOR_PROJECT_DOMAIN_NAME', None)
+        _project_domain_name = environ.get('WATCHER.INITIATOR_PROJECT_DOMAIN_NAME', None)
         project_name = environ.get('WATCHER.INITIATOR_PROJECT_NAME', None)
         domain_name = _project_domain_name or _domain_name
 
