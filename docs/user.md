@@ -70,10 +70,6 @@ Given a `rate limit=1r/m` and a `max_sleep_time_seconds=20`, the 1st request at 
 However, a 2nd request received within the one minute window after the 1st request would exceed the rate limit.
 Assuming it's received at t<sub>2</sub>=45, the request would not be rejected but suspended for 15 seconds and processed afterwards so that the rate of `1r/m` is not exceeded. 
 
-However, this behaviour might let your application appear slow for a user. 
-It can be disabled by setting `max_sleep_time_seconds=0` and using burst requests without delay as described below.
-
-## Without delay
-
-Handling burst requests without delay 
-
+However, this behaviour might let your application appear slow for a user since request can be suspended for as long as `max_sleep_time_seconds`.
+It can be disabled by setting `max_sleep_time_seconds=0`.
+In which case every requests that exceeds the defined rate limits immediately gets rejected.
