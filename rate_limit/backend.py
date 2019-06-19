@@ -64,10 +64,12 @@ class RedisBackend(Backend):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
+            rate_limit_response=rate_limit_response,
+            max_sleep_time_seconds=max_sleep_time_seconds,
+            log_sleep_time_seconds=log_sleep_time_seconds,
             logger=logger,
             kwargs=kwargs
         )
-
         self.__host = host
         self.__port = port
         self.__max_sleep_time_seconds = max_sleep_time_seconds

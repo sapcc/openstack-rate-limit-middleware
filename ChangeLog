@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+* document configurable options
+* docs
+* fix more typos
 * fix typo
 * fix test with FakeKeystoneclient
 * fixes #10
