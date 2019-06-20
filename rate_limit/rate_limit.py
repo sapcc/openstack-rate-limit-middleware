@@ -22,6 +22,7 @@ from . import common
 from . import errors
 from . import provider
 from . import response
+from . import units
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
@@ -108,6 +109,9 @@ class OpenStackRateLimitMiddleware(object):
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
+        # Accuracy of the request timestamps used. Defaults to nanosecond accuracy.
+        clock_accuracy = int(1/units.Units.parse(self.wsgi_config.get('clock_accuracy', '1ns')))
+
         self.backend = rate_limit_backend.RedisBackend(
             host=self.backend_host,
             port=self.backend_port,
@@ -117,6 +121,7 @@ class OpenStackRateLimitMiddleware(object):
             logger=self.logger,
             timeout_seconds=backend_timeout_seconds,
             max_connections=backend_max_connections,
+            clock_accuracy=clock_accuracy,
         )
 
         # Test if the backend is ready.
@@ -225,6 +230,8 @@ class OpenStackRateLimitMiddleware(object):
             '{0}:{1}'.format(self.rate_limit_by, scope),
             'target_type_uri:{0}'.format(target_type_uri)
         ]
+        global_metric_labels = metric_labels + ['level:global']
+        local_metric_labels = metric_labels + ['level:local']
 
         # Check whether a set of CADF actions are accounted together.
         new_action = self.get_action_from_rate_limit_groups(action)
@@ -278,7 +285,7 @@ class OpenStackRateLimitMiddleware(object):
                 scope=None, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=global_rate_limit
             )
             if rate_limit_response:
-                self.metricsClient.increment('requests_global_ratelimit_total', tags=metric_labels)
+                self.metricsClient.increment('requests_ratelimit_total', tags=global_metric_labels)
                 return rate_limit_response
 
         # Get local (for a certain scope) rate limits from provider.
@@ -298,7 +305,7 @@ class OpenStackRateLimitMiddleware(object):
                 scope=scope, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=local_rate_limit
             )
             if rate_limit_response:
-                self.metricsClient.increment('requests_local_ratelimit_total', tags=metric_labels)
+                self.metricsClient.increment('requests_ratelimit_total', tags=local_metric_labels)
                 return rate_limit_response
 
         return None

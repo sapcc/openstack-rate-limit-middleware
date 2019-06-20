@@ -26,7 +26,7 @@ config_file:                    <string>
 
 # If this middleware enforces rate limits in multiple replicas of an API,
 # the clock accuracy of the individual replicas can be configured as follows.
-clock_accuracy:                 <n><unit> (default: 1ms)
+clock_accuracy:                 <n><unit> (default: 1ns)
 
 # Per default rate limits are applied based on `initiator_project_id`.
 # However, this can also be se to `initiator_host_address` or `target_project_id`.

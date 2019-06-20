@@ -33,7 +33,6 @@ X-RateLimit-Reset: 60
 X-Retry-After: 60
 ```
 
-
 # Metrics
 
 This middleware emits the following [Prometheus metrics](https://prometheus.io/docs/concepts/metric_types) via [StatsD](https://github.com/DataDog/datadogpy).  
@@ -42,8 +41,7 @@ This middleware emits the following [Prometheus metrics](https://prometheus.io/d
 |-----------------------------------------------------|-------------|
 | openstack_ratelimit_requests_whitelisted_total      | Amount of whitelisted requests. |
 | openstack_ratelimit_requests_blacklisted_total      | Amount of blacklisted requests. |
-| openstack_ratelimit_requests_global_ratelimit_total | Amount of rate limited requests due to the global rate limit. |
-| openstack_ratelimit_requests_local_ratelimit_total  | Amount of rate limited requests due to the local (per scope) rate limit. |
+| openstack_ratelimit_requests_ratelimit_total        | Amount of rate limited requests due to a global or local rate limit. |
 
 All metrics come with the following labels:
 
@@ -55,6 +53,7 @@ All metrics come with the following labels:
 | scope           | The scope of the request. |
 | target_type_uri | The CADF target type URI of the request. |
 
+In addition the `openstack_ratelimit_requests_ratelimit_total` metric comes with a `level` label indicating whether a global or local rate limit was the limit. 
 
 # Burst requests
 

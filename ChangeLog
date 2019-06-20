@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+* nanosecond clock accuracy
+
+1.0.1
+-----
+
+* fix init
 * document configurable options
 * docs
 * fix more typos

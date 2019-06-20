@@ -77,6 +77,8 @@ class RedisBackend(Backend):
         self.__rate_limit_response = rate_limit_response
         self.__timeout = kwargs.get('timeout_seconds', 20)
         self.__max_connections = kwargs.get('max_connections', 100)
+        # Default to nanosecond accuracy.
+        self.__clock_accuracy = int(kwargs.get('clock_accuracy', 1e6))
 
         # Use a thread-safe blocking connection pool.
         conn_pool = redis.BlockingConnectionPool(
@@ -153,10 +155,10 @@ class RedisBackend(Backend):
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
 
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
-        now = time.time()
-        # Convert from float to int with millisecond accuracy.
-        now_int = int(now * 1000)
-        window_seconds_int = int(window_seconds * 1000)
+        # Timestamp with given accuracy as integer.
+        now_int = int(time.time() * self.__clock_accuracy)
+        # Sliding window in seconds with given accuracy.
+        window_seconds_int = int(window_seconds * self.__clock_accuracy)
         # Max. lookback as timestamp.
         lookback_time_max = int(now_int - window_seconds_int)
         # Make sure it's an int.
@@ -165,14 +167,16 @@ class RedisBackend(Backend):
         # Use the SHA1 digest of the LUA script and use redis internal caching instead of sending it every time.
         try:
             result = self.__redis.evalsha(
-                self.__rate_limit_script_sha, 6,
-                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
+                self.__rate_limit_script_sha, 7,
+                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds,
+                self.__clock_accuracy,
             )
         # If the script is not (yet) present submit to redis and evaluate it.
         except redis.exceptions.NoScriptError:
             result = self.__redis.eval(
-                self.__rate_limit_script, 6,
-                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds
+                self.__rate_limit_script, 7,
+                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds,
+                self.__clock_accuracy
             )
 
         # Parse result list safely.

@@ -21,6 +21,7 @@ from enum import Enum
 class Units(Enum):
     """Defines the units that can be used to rate limit requests."""
 
+    NANOSECOND = 'ns'
     MILLISECOND = 'ms'
     SECOND = 's'
     MINUTE = 'm'
@@ -29,9 +30,17 @@ class Units(Enum):
 
     @staticmethod
     def get_conversion_factor(unit):
+        """
+        Get conversion factor to base 1 second.
+
+        :param unit: the unit as string
+        :return: the factor
+        """
         f = -1
-        if unit == Units.MILLISECOND.value:
-            f = 0.001
+        if unit == Units.NANOSECOND.value:
+            f = 1/1e6
+        elif unit == Units.MILLISECOND.value:
+            f = 1/1e3
         elif unit == Units.SECOND.value:
             f = 1
         elif unit == Units.MINUTE.value:
