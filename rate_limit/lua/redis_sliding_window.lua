@@ -33,16 +33,17 @@ end
 timestamp0 = reqs[1] or now_int
 -- Calculate how long the request would need to be suspended.
 retry_after_seconds = tonumber(math.ceil(timestamp0 + window_seconds_int - now_int) / clock_accuracy_int)
--- Can be suspended?
-if retry_after_seconds <= max_sleep_time_seconds_int then
+-- Can the requests be suspended and processed later?
+if retry_after_seconds < max_sleep_time_seconds_int then
     -- Count current request.
     remaining = remaining -1
     -- Time when requests will be executed.
-    now_int = tonumber(now_int + retry_after_seconds * clock_accuracy_int)
+    now_int = tonumber(now_int + (retry_after_seconds * clock_accuracy_int))
     -- Add timestamp to the list.
     redis.call('zadd', key, now_int, now_int)
     -- Reset expiry time for key.
     redis.call('expire', key, window_seconds_int)
 end
+
 -- Returns the number of remaining requests and the list of timestamps.
 return {remaining, retry_after_seconds}

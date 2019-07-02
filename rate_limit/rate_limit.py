@@ -100,7 +100,10 @@ class OpenStackRateLimitMiddleware(object):
         default_whitelist = ['127.0.0.1', 'localhost']
         config_whitelist = self.config.get('whitelist', [])
         self.whitelist = default_whitelist + config_whitelist
+        self.whitelist_users = self.config.get('whitelist_users', [])
+
         self.blacklist = self.config.get('blacklist', [])
+        self.blacklist_users = self.config.get('blacklist_users', [])
 
         # Mapping of potentially multiple CADF actions to one action.
         self.rate_limit_groups = self.config.get('groups', {})
@@ -248,6 +251,15 @@ class OpenStackRateLimitMiddleware(object):
                 self.cadf_service_name, target_type_uri
             )
 
+        username = kwargs.get('username', None)
+        # If we have the username: Check whether the user is white- or blacklisted.
+        if username:
+            if self.is_user_whitelisted(username):
+                return None
+
+            if self.is_user_blacklisted(username):
+                return self.blacklist_response
+
         # The key of the scope in the format $domainName/projectName.
         scope_name_key = kwargs.get('scope_name_key', None)
 
@@ -348,6 +360,7 @@ class OpenStackRateLimitMiddleware(object):
             rate_limit_response = self._rate_limit(
                 scope=scope, action=action, target_type_uri=target_type_uri,
                 scope_name_key=self._get_scope_name_key_from_environ(environ),
+                username=self._get_username_from_environ(environ),
             )
             if rate_limit_response:
                 rate_limit_response.set_environ(environ)
@@ -372,6 +385,18 @@ class OpenStackRateLimitMiddleware(object):
                 return True
         return False
 
+    def is_user_blacklisted(self, user_to_check):
+        """
+        Check whether a user is blacklisted.
+
+        :param user_to_check: the name of the user to check
+        :return: bool whether user is blacklisted
+        """
+        for u in self.blacklist_users:
+            if str(u).lower() == str(user_to_check).lower():
+                return True
+        return False
+
     def is_scope_whitelisted(self, key_to_check):
         """
         Check whether a scope (user_id, project_id or client ip) is whitelisted.
@@ -381,6 +406,18 @@ class OpenStackRateLimitMiddleware(object):
         """
         for entry in self.whitelist:
             if entry == key_to_check:
+                return True
+        return False
+
+    def is_user_whitelisted(self, user_to_check):
+        """
+        Check whether a user is whitelisted.
+
+        :param user_to_check: the name of the user to check
+        :return: bool whether user is whitelisted
+        """
+        for u in self.whitelist_users:
+            if str(u).lower() == str(user_to_check).lower():
                 return True
         return False
 
@@ -443,7 +480,7 @@ class OpenStackRateLimitMiddleware(object):
 
     def _get_scope_name_key_from_environ(self, environ):
         """
-        Attempt to build the key '$domainName/$projectName' from the WATCHER attributes found in the request environ
+        Attempt to build the key '$domainName/$projectName' from the WATCHER attributes found in the request environ.
 
         :param environ: the request environ
         :return: the key or None
@@ -456,6 +493,18 @@ class OpenStackRateLimitMiddleware(object):
         if common.is_none_or_unknown(project_name) or common.is_none_or_unknown(domain_name):
             return None
         return '{0}/{1}'.format(domain_name, project_name)
+
+    def _get_username_from_environ(self, environ):
+        """
+        Attempt to get username from WATCHER attributes found in request environ.
+
+        :param environ: the request environ
+        :return: the username or None
+        """
+        username = environ.get('WATCHER.INITIATOR_USER_NAME', None)
+        if common.is_none_or_unknown(username):
+            return None
+        return username
 
     def _set_service_type_and_name(self, environ):
         """

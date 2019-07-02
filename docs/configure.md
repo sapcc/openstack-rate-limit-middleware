@@ -115,15 +115,24 @@ Requests in a whitelisted scope are not rate limited.
 Also see the [examples](../etc/).  
 
 ```yaml
-# List of blacklisted scopes (project UUID, host address).
+# List of blacklisted scopes (project UUID, host address), keys (domainName/projectName).
 blacklist:
     - <scope>
     - <key>
+    - <username>
 
-# List of whitelisted scoped (project UUID, host address).
+# List of blacklisted users by name.
+blacklist_users:
+    - <userName>
+
+# List of whitelisted scopes (project UUID, host address), keys (domainName/projectName).
 whitelist:
     - <scope>
     - <key>
+
+# List of whitelisted users by name.
+whitelist_users:
+    - <userName>
 ```
 
 ## Customize responses

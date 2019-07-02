@@ -188,7 +188,7 @@ class RedisBackend(Backend):
             return None
 
         # Suspend the current request if its it has to wait no longer than max_sleep_time_seconds.
-        elif retry_after_seconds <= self.__max_sleep_time_seconds:
+        elif retry_after_seconds < self.__max_sleep_time_seconds:
             # Log the current request if it has to be suspended for at least log_sleep_time_seconds.
             if retry_after_seconds >= self.__log_sleep_time_seconds:
                 self.logger.info(
