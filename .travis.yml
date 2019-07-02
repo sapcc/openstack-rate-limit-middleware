@@ -2,7 +2,7 @@ sudo: false
 language: python
 
 before_install:
-  - sudo service redis-server start --bind 127.0.0.1
+  sudo service redis-server start --bind 127.0.0.1
 
 matrix:
   include:
