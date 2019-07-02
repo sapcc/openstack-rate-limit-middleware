@@ -42,7 +42,7 @@ if (retry_after_seconds < max_sleep_time_seconds_int) and (remaining - 1 >= -max
     -- Reset expiry time for key.
     redis.call('expire', key, window_seconds_int)
     -- Return if the request can be suspended.
-    return {remaining -1 , retry_after_seconds}
+    return {remaining - 1 , retry_after_seconds}
 end
 
 -- Return if no more remaining requests and suspending request not possible.
