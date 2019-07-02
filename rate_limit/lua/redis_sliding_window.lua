@@ -14,7 +14,7 @@ clock_accuracy_int = tonumber(KEYS[7])
 redis.call('zremrangebyscore', key, '-inf', lookback_timestamp_max_int)
 -- List of API calls in the current sliding window.
 local reqs, remaining, timestamp0, retry_after_seconds
-reqs = redis.call('zrange', key, 0, -1)
+reqs = redis.call('zrange', key, 1, -1)
 -- Get number of remaining requests.
 remaining = tonumber(max_calls_int - #reqs)
 
@@ -25,25 +25,26 @@ if remaining > 0 then
     -- Reset expiry time for key.
     redis.call('expire', key, window_seconds_int)
     -- Return the number of remaining requests. Retry after not relevant.
-    return {remaining, 0}
+    return {remaining, -1}
 end
 
 -- Rate limit reached but check if the requests can be suspended.
 -- Get timestamp of 1st requests in current window.
-timestamp0 = reqs[1] or now_int
+timestamp0 = reqs[1]
 -- Calculate how long the request would need to be suspended.
 retry_after_seconds = tonumber(math.ceil(timestamp0 + window_seconds_int - now_int) / clock_accuracy_int)
 -- Can the requests be suspended and processed later?
-if retry_after_seconds < max_sleep_time_seconds_int then
-    -- Count current request.
-    remaining = remaining -1
-    -- Time when requests will be executed.
+if (retry_after_seconds < max_sleep_time_seconds_int) and (remaining - 1 >= -max_calls_int) then
+    -- Time when requests will actually be executed.
     now_int = tonumber(now_int + (retry_after_seconds * clock_accuracy_int))
     -- Add timestamp to the list.
     redis.call('zadd', key, now_int, now_int)
     -- Reset expiry time for key.
     redis.call('expire', key, window_seconds_int)
+    -- Return if the request can be suspended.
+    return {remaining -1 , retry_after_seconds}
 end
 
--- Returns the number of remaining requests and the list of timestamps.
-return {remaining, retry_after_seconds}
+-- Return if no more remaining requests and suspending request not possible.
+-- Ensure the 2nd argument (retry_after is greater than max_sleep_time_seconds_int)
+return {0, 2 * max_sleep_time_seconds_int}

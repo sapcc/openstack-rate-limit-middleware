@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* support whitelisting users by name
 * recommendation
 * nanosecond clock accuracy
 

@@ -183,6 +183,11 @@ class RedisBackend(Backend):
         remaining = common.listitem_to_int(result, idx=0)
         retry_after_seconds = common.listitem_to_int(result, idx=1)
 
+        print "--------------------------------------------------------------------------------------------------------"
+        print "remaining: {}".format(remaining)
+        print "retry_after_seconds: {}".format(retry_after_seconds)
+        print "--------------------------------------------------------------------------------------------------------"
+
         # Return here if we still have remaining requests.
         if remaining > 0:
             return None
