@@ -38,9 +38,9 @@ class Units(Enum):
         """
         f = -1
         if unit == Units.NANOSECOND.value:
-            f = 1/1e6
+            f = 1 / 1e6
         elif unit == Units.MILLISECOND.value:
-            f = 1/1e3
+            f = 1 / 1e3
         elif unit == Units.SECOND.value:
             f = 1
         elif unit == Units.MINUTE.value:

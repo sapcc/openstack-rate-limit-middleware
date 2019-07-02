@@ -113,7 +113,7 @@ class OpenStackRateLimitMiddleware(object):
         self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
 
         # Accuracy of the request timestamps used. Defaults to nanosecond accuracy.
-        clock_accuracy = int(1/units.Units.parse(self.wsgi_config.get('clock_accuracy', '1ns')))
+        clock_accuracy = int(1 / units.Units.parse(self.wsgi_config.get('clock_accuracy', '1ns')))
 
         self.backend = rate_limit_backend.RedisBackend(
             host=self.backend_host,
