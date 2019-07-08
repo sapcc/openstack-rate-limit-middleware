@@ -8,6 +8,9 @@ clean-build:
 test: clean-pyc
 	tox
 
+test-local:
+	docker run -d --name redis -p 6379:6379 redis:latest && make test; docker rm -f redis
+
 clean-test: clean-pyc
 	tox --recreate
 

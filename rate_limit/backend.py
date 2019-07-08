@@ -152,6 +152,7 @@ class RedisBackend(Backend):
             )
             return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
         except Exception as e:
+            self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
 
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
@@ -178,6 +179,10 @@ class RedisBackend(Backend):
                 key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds,
                 self.__clock_accuracy
             )
+        #except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError, redis.exceptions.ResponseError) as e:
+        #    self.logger.debug(
+        #        "error executing redis script: {0}".format(str(e))
+        #    )
 
         # Parse result list safely.
         remaining = common.listitem_to_int(result, idx=0)

@@ -12,9 +12,9 @@ clock_accuracy_int = tonumber(KEYS[7])
 -- like allowing burst requests with delayed/not delayed execution.
 -- Remove all API calls that are older than the sliding window.
 redis.call('zremrangebyscore', key, '-inf', lookback_timestamp_max_int)
--- List of API calls in the current sliding window.
+-- List of API calls for the key sorted by time.
 local reqs, remaining, timestamp0, retry_after_seconds
-reqs = redis.call('zrange', key, 1, -1)
+reqs = redis.call('zrangebyscore', key, '-inf', 'inf')
 -- Get number of remaining requests.
 remaining = tonumber(max_calls_int - #reqs)
 

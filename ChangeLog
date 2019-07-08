@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+* more travis
+* travis
+* style fixes
+* removes print
+* fix lookahead
 * support whitelisting users by name
 * recommendation
 * nanosecond clock accuracy
