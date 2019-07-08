@@ -1,7 +1,8 @@
 OpenStack Rate Limit Middleware
 ===============================
 
-[![Build Status](https://travis-ci.org/sapcc/openstack-rate-limit-middleware.svg?branch=master)](https://travis-ci.org/sapcc/openstack-rate-limit-middleware)
+[![Build Status](https://travis-ci.org/sapcc/openstack-rate-limit-middleware.svg?branch=master)](https://travis-ci.org/sapcc/openstack-rate-limit-middleware) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 
 The OpenStack Rate Limit Middleware enforces rate limits and enables traffic shaping for OpenStack APIs per tuple of
 - *target type URI*
