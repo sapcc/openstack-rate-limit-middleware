@@ -1,6 +1,21 @@
 CHANGES
 =======
 
+1.0.4
+-----
+
+* bump redis requirement
+* adds license badge
+
+1.0.3
+-----
+
+* fix exception handling
+
+1.0.2
+-----
+
+* fix sorting; adds make test-local via redis container
 * more travis
 * travis
 * style fixes
