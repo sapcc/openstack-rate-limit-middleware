@@ -82,6 +82,7 @@ class Constants(object):
     metric_requests_whitelisted_total = 'requests_whitelisted_total'
     metric_requests_blacklisted_total = 'requests_blacklisted_total'
 
+
 def key_func(scope, action, target_type_uri):
     """
     Create the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'.
