@@ -72,6 +72,15 @@ class Constants(object):
     # Reponse content type.
     content_type_html = "text/html"
 
+    # Metrics emitted by this middleware.
+    # Prefix applied to all metrics. Default (below) can be overridden via WSGI config.
+    # See documentation for more details.
+    metric_prefix = 'openstack_ratelimit'
+    metric_errors_total = 'errors_total'
+    metric_requests_unknown_classification = 'requests_unknown_classification_total'
+    metric_requests_ratelimit_total = 'requests_ratelimit_total'
+    metric_requests_whitelisted_total = 'requests_whitelisted_total'
+    metric_requests_blacklisted_total = 'requests_blacklisted_total'
 
 def key_func(scope, action, target_type_uri):
     """

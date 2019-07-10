@@ -47,7 +47,7 @@ class OpenStackRateLimitMiddleware(object):
         # StatsD is used to emit metrics.
         statsd_host = wsgi_config.get('statsd_host', '127.0.0.1')
         statsd_port = common.to_int(wsgi_config.get('statsd_port', 9125))
-        statsd_prefix = wsgi_config.get('statsd_prefix', 'openstack_ratelimit')
+        statsd_prefix = wsgi_config.get('statsd_prefix', common.Constants.metric_prefix)
 
         # Init StatsD client.
         self.metricsClient = DogStatsd(
@@ -268,7 +268,7 @@ class OpenStackRateLimitMiddleware(object):
             self.logger.debug(
                 "scope {0} (key: {1}) is whitelisted. skipping rate limit".format(scope, scope_name_key)
             )
-            self.metricsClient.increment('requests_whitelisted_total', tags=metric_labels)
+            self.metricsClient.increment(common.Constants.metric_requests_whitelisted_total, tags=metric_labels)
             return None
 
         # Check blacklist. If scope is blacklisted return BlacklistResponse.
@@ -276,7 +276,7 @@ class OpenStackRateLimitMiddleware(object):
             self.logger.debug(
                 "scope {0} (key: {1}) is blacklisted. returning BlacklistResponse".format(scope, scope_name_key)
             )
-            self.metricsClient.increment('requests_blacklisted_total', tags=metric_labels)
+            self.metricsClient.increment(common.Constants.metric_requests_blacklisted_total, tags=metric_labels)
             return self.blacklist_response
 
         # Get global rate limits from the provider.
@@ -297,7 +297,9 @@ class OpenStackRateLimitMiddleware(object):
                 scope=None, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=global_rate_limit
             )
             if rate_limit_response:
-                self.metricsClient.increment('requests_ratelimit_total', tags=global_metric_labels)
+                self.metricsClient.increment(
+                    common.Constants.metric_requests_ratelimit_total, tags=global_metric_labels
+                )
                 return rate_limit_response
 
         # Get local (for a certain scope) rate limits from provider.
@@ -317,7 +319,9 @@ class OpenStackRateLimitMiddleware(object):
                 scope=scope, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=local_rate_limit
             )
             if rate_limit_response:
-                self.metricsClient.increment('requests_ratelimit_total', tags=local_metric_labels)
+                self.metricsClient.increment(
+                    common.Constants.metric_requests_ratelimit_total, tags=local_metric_labels
+                )
                 return rate_limit_response
 
         return None
@@ -351,8 +355,11 @@ class OpenStackRateLimitMiddleware(object):
                     "action: {0}, target_type_uri: {1}, scope: {2}".format(action, target_type_uri, scope)
                 )
                 self.metricsClient.increment(
-                    'requests_unkown_classification',
-                    tags=['service:{0}'.format(self.service_type), 'service_name:{0}'.format(self.cadf_service_name)]
+                    common.Constants.metric_requests_unknown_classification,
+                    tags=[
+                        'service:{0}'.format(self.service_type),
+                        'service_name:{0}'.format(self.cadf_service_name),
+                    ]
                 )
                 return
 
@@ -367,6 +374,7 @@ class OpenStackRateLimitMiddleware(object):
                 resp = rate_limit_response
 
         except Exception as e:
+            self.metricsClient.increment(common.Constants.metric_errors_total)
             self.logger.debug("checking rate limits failed with: {0}".format(str(e)))
 
         finally:

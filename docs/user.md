@@ -37,11 +37,13 @@ X-Retry-After: 60
 
 This middleware emits the following [Prometheus metrics](https://prometheus.io/docs/concepts/metric_types) via [StatsD](https://github.com/DataDog/datadogpy).  
 
-| Metric name                                         | Description |
-|-----------------------------------------------------|-------------|
-| openstack_ratelimit_requests_whitelisted_total      | Amount of whitelisted requests. |
-| openstack_ratelimit_requests_blacklisted_total      | Amount of blacklisted requests. |
-| openstack_ratelimit_requests_ratelimit_total        | Amount of rate limited requests due to a global or local rate limit. |
+| Metric name                                                   | Description |
+|---------------------------------------------------------------|-------------|
+| openstack_ratelimit_requests_whitelisted_total                | Amount of whitelisted requests. |
+| openstack_ratelimit_requests_blacklisted_total                | Amount of blacklisted requests. |
+| openstack_ratelimit_requests_ratelimit_total                  | Amount of rate limited requests due to a global or local rate limit. |
+| openstack_ratelimit_requests_unknown_classification_total     | Amount of Requests with missing `scope` and/or `action` and/or `target_type_uri`. See log for details. |
+| openstack_ratelimit_errors_total                              | Amount of errors while processing a request. See log for details. |
 
 All metrics come with the following labels:
 
