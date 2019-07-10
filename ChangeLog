@@ -1,6 +1,17 @@
 CHANGES
 =======
 
+1.0.6
+-----
+
+* make linter happy
+* adds openstack\_ratelimit\_errors\_total metric
+
+1.0.5
+-----
+
+* don't require python-redis >=3.1.0
+
 1.0.4
 -----
 
