@@ -14,7 +14,6 @@
 
 
 import keystoneclient.v3 as keystonev3
-import logging
 import redis
 import requests
 
@@ -22,14 +21,13 @@ from keystoneauth1.identity import v3
 from keystoneauth1 import session
 
 from . import common
-
-logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
+from . import log
 
 
 class RateLimitProvider(object):
     """Interface to obtain rate limits from different sources."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=log.Logger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
         self.global_ratelimits = {}
@@ -63,7 +61,7 @@ class RateLimitProvider(object):
 class ConfigurationRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from a configuration file."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=log.Logger(__name__), **kwargs):
         super(ConfigurationRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
         )
@@ -117,7 +115,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 class LimesRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from limes."""
 
-    def __init__(self, service_type, logger=logging.getLogger(__name__), **kwargs):
+    def __init__(self, service_type, logger=log.Logger(__name__), **kwargs):
         super(LimesRateLimitProvider, self).__init__(service_type=service_type, logger=logger, kwargs=kwargs)
 
         # Cache rate limits in redis if refresh_interval_seconds != 0

@@ -13,7 +13,6 @@
 # under the License.
 
 import os
-import logging
 
 from datadog.dogstatsd import DogStatsd
 
@@ -23,8 +22,7 @@ from . import errors
 from . import provider
 from . import response
 from . import units
-
-logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
+from . import log
 
 
 class OpenStackRateLimitMiddleware(object):
@@ -38,11 +36,18 @@ class OpenStackRateLimitMiddleware(object):
       action          ( create, read, update, delete, authenticate, .. )
     """
 
-    def __init__(self, app, wsgi_config, logger=logging.getLogger(__name__)):
-        self.logger = logger
+    def __init__(self, app, wsgi_config, logger=log.Logger(__name__)):
         self.app = app
         # Configuration via paste.ini.
         self.wsgi_config = wsgi_config
+
+        # Set log level based on env var DEBUG.
+        log_level = 'INFO'
+        is_debug = os.getenv('DEBUG', False)
+        if is_debug == ("true" or True):
+            log_level = 'DEBUG'
+        logger.setLevel(log_level)
+        self.logger = logger
 
         # StatsD is used to emit metrics.
         statsd_host = wsgi_config.get('statsd_host', '127.0.0.1')
@@ -121,7 +126,6 @@ class OpenStackRateLimitMiddleware(object):
             rate_limit_response=self.ratelimit_response,
             max_sleep_time_seconds=max_sleep_time_seconds,
             log_sleep_time_seconds=log_sleep_time_seconds,
-            logger=self.logger,
             timeout_seconds=backend_timeout_seconds,
             max_connections=backend_max_connections,
             clock_accuracy=clock_accuracy,
@@ -134,9 +138,8 @@ class OpenStackRateLimitMiddleware(object):
 
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
-        configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(
-            service_type=self.service_type, logger=self.logger
-        )
+        configuration_ratelimit_provider = provider.ConfigurationRateLimitProvider(service_type=self.service_type)
+
         # Force load of rate limits from configuration file.
         configuration_ratelimit_provider.read_rate_limits_from_config(config_file)
         self.ratelimit_provider = configuration_ratelimit_provider
@@ -146,6 +149,8 @@ class OpenStackRateLimitMiddleware(object):
         limes_enabled = wsgi_config.get('limes_enabled', False)
         if limes_enabled:
             self.__setup_limes_ratelimit_provider()
+
+        self.logger.info("OpenStack Rate Limit Middleware ready for requests.")
 
     def _setup_response(self):
         """Setup configurable RateLimitExceededResponse and BlacklistResponse."""
@@ -191,7 +196,6 @@ class OpenStackRateLimitMiddleware(object):
         try:
             limes_ratelimit_provider = provider.LimesRateLimitProvider(
                 service_type=self.service_type,
-                logger=self.logger,
                 redis_host=self.backend_host,
                 redis_port=self.backend_port,
                 refresh_interval_seconds=self.wsgi_config.get(common.Constants.limes_refresh_interval_seconds, 300),

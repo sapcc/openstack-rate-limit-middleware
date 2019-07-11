@@ -14,22 +14,20 @@
 
 import eventlet
 import hashlib
-import logging
 import redis
 import time
 
 from distutils.version import StrictVersion
 
 from . import common
+from . import log
 from .units import Units
-
-logging.basicConfig(format='%(asctime)-15s %(message)s')
 
 
 class Backend(object):
     """Backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, logger, **kwargs):
+    def __init__(self, host, port, rate_limit_response, logger=log.Logger(__name__), **kwargs):
         self.__host = host
         self.__port = port
         self.__rate_limit_response = rate_limit_response
@@ -60,7 +58,7 @@ class Backend(object):
 class RedisBackend(Backend):
     """Stable Redis backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger, **kwargs):
+    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger=log.Logger(__name__), **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
@@ -195,7 +193,7 @@ class RedisBackend(Backend):
         elif retry_after_seconds < self.__max_sleep_time_seconds:
             # Log the current request if it has to be suspended for at least log_sleep_time_seconds.
             if retry_after_seconds >= self.__log_sleep_time_seconds:
-                self.logger.info(
+                self.logger.debug(
                     "suspending request '{0}' for '{1}' seconds to fit rate limit '{2}'"
                     .format(key, retry_after_seconds, max_rate_string)
                 )
