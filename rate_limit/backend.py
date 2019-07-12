@@ -58,7 +58,8 @@ class Backend(object):
 class RedisBackend(Backend):
     """Stable Redis backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds, logger=log.Logger(__name__), **kwargs):
+    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds,
+                 logger=log.Logger(__name__), **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,

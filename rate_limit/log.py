@@ -35,7 +35,6 @@ class Logger(object):
             pass
 
     def warning(self, msg):
-        print msg
         try:
             self.__logger.warning(msg)
         except Exception:
