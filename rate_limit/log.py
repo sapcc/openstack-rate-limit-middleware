@@ -12,9 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
+import os
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(levelname)s %(message)s')
+from oslo_config import cfg
+from oslo_log import log as logging
+
+CONF = cfg.CONF
 
 
 class Logger(object):
@@ -22,11 +25,14 @@ class Logger(object):
     Logger that attempts to log and ignores any error.
 
     """
-    def __init__(self, name):
+    def __init__(self, name, product_name='rate_limit'):
         self.__logger = logging.getLogger(name)
-
-    def setLevel(self, level=logging.INFO):
-        self.__logger.setLevel(level)
+        try:
+            logging.register_options(CONF)
+            logging.setup(CONF, product_name)
+        except cfg.ArgsAlreadyParsedError:
+            # Ignore error if args are already registered.
+            pass
 
     def info(self, msg):
         try:
@@ -40,8 +46,15 @@ class Logger(object):
         except Exception:
             pass
 
+    def warning(self, msg):
+        try:
+            self.__logger.error(msg)
+        except Exception:
+            pass
+
     def debug(self, msg):
         try:
-            self.__logger.debug(msg)
+            if CONF.debug or os.getenv("DEBUG", False):
+                self.__logger.debug(msg)
         except Exception:
             pass

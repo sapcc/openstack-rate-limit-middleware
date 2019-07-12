@@ -15,8 +15,7 @@
 import unittest
 import os
 
-from rate_limit import OpenStackRateLimitMiddleware
-
+from rate_limit.rate_limit import OpenStackRateLimitMiddleware
 from . import fake
 
 
@@ -31,11 +30,10 @@ class TestActionGroups(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
+
         self.app = OpenStackRateLimitMiddleware(
             app=fake.FakeApp(),
-            wsgi_config={
-                'config_file': CONFIGPATH
-            }
+            config_file=CONFIGPATH
         )
         self.is_setup = True
 
@@ -59,8 +57,6 @@ groups:
         )
 
     def test_mapping(self):
-        rl_groups = self.app.rate_limit_groups
-
         stimuli = [
             {
                 'action': 'create',

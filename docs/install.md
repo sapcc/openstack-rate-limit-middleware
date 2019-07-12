@@ -82,9 +82,9 @@ limes_api_uri:                  <string>
 limes_refresh_interval_seconds: <int> (default: 300)
 
 # Credentials of the OpenStack service user able to read rate limits from Limes.
-identity_auth_url:              <string>
-username:                       <string>
-user_domain_name:               <string>
-password:                       <string>
-domain_name:                    <string>
+identity_auth_url:                    <string>
+limes_username:                       <string>
+limes_user_domain_name:               <string>
+limes_password:                       <string>
+limes_domain_name:                    <string>
 ```

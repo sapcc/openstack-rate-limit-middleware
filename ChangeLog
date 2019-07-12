@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* default to oslo\_log
+* fix pep8
 * logging ignore error
 * changelog
 

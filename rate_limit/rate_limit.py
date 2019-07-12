@@ -36,23 +36,16 @@ class OpenStackRateLimitMiddleware(object):
       action          ( create, read, update, delete, authenticate, .. )
     """
 
-    def __init__(self, app, wsgi_config, logger=log.Logger(__name__)):
+    def __init__(self, app, **conf):
         self.app = app
         # Configuration via paste.ini.
-        self.wsgi_config = wsgi_config
-
-        # Set log level based on env var DEBUG.
-        log_level = 'INFO'
-        is_debug = os.getenv('DEBUG', False)
-        if is_debug == ("true" or True):
-            log_level = 'DEBUG'
-        logger.setLevel(log_level)
-        self.logger = logger
+        self.__conf = conf
+        self.logger = log.Logger(conf.get('log_name', __name__))
 
         # StatsD is used to emit metrics.
-        statsd_host = wsgi_config.get('statsd_host', '127.0.0.1')
-        statsd_port = common.to_int(wsgi_config.get('statsd_port', 9125))
-        statsd_prefix = wsgi_config.get('statsd_prefix', common.Constants.metric_prefix)
+        statsd_host = self.__conf.get('statsd_host', '127.0.0.1')
+        statsd_port = common.to_int(self.__conf.get('statsd_port', 9125))
+        statsd_prefix = self.__conf.get('statsd_prefix', common.Constants.metric_prefix)
 
         # Init StatsD client.
         self.metricsClient = DogStatsd(
@@ -63,17 +56,17 @@ class OpenStackRateLimitMiddleware(object):
 
         # Get backend configuration.
         # Backend is used to store count of requests.
-        self.backend_host = wsgi_config.get('backend_host', '127.0.0.1')
-        self.backend_port = common.to_int(self.wsgi_config.get('backend_port'), 6379)
+        self.backend_host = self.__conf.get('backend_host', '127.0.0.1')
+        self.backend_port = common.to_int(self.__conf.get('backend_port'), 6379)
         self.logger.debug(
             "using backend '{0}' on '{1}:{2}'".format('redis', self.backend_host, self.backend_port)
         )
-        backend_timeout_seconds = common.to_int(self.wsgi_config.get('backend_timeout_seconds'), 20)
-        backend_max_connections = common.to_int(self.wsgi_config.get('backend_max_connections'), 100)
+        backend_timeout_seconds = common.to_int(self.__conf.get('backend_timeout_seconds'), 20)
+        backend_max_connections = common.to_int(self.__conf.get('backend_max_connections'), 100)
 
         # Load configuration file.
         self.config = {}
-        config_file = wsgi_config.get('config_file', None)
+        config_file = self.__conf.get('config_file', None)
         if config_file:
             try:
                 self.config = common.load_config(config_file)
@@ -82,20 +75,20 @@ class OpenStackRateLimitMiddleware(object):
                     "error loading configuration: {0}".format(str(e))
                 )
 
-        self.service_type = wsgi_config.get('service_type', None)
+        self.service_type = self.__conf.get('service_type', None)
 
         # This is required to trim the prefix from the target_type_uri.
         # Example:
         #   service_type      = identity
         #   cadf_service_name = data/security
         #   target_type_uri   = data/security/auth/tokens -> auth/tokens
-        self.cadf_service_name = wsgi_config.get('cadf_service_name', None)
+        self.cadf_service_name = self.__conf.get('cadf_service_name', None)
         if common.is_none_or_unknown(self.cadf_service_name):
             self.cadf_service_name = common.CADF_SERVICE_TYPE_PREFIX_MAP.get(self.service_type, None)
 
         # Use configured parameters or ensure defaults.
-        max_sleep_time_seconds = common.to_int(self.wsgi_config.get(common.Constants.max_sleep_time_seconds), 20)
-        log_sleep_time_seconds = common.to_int(self.wsgi_config.get(common.Constants.log_sleep_time_seconds), 10)
+        max_sleep_time_seconds = common.to_int(self.__conf.get(common.Constants.max_sleep_time_seconds), 20)
+        log_sleep_time_seconds = common.to_int(self.__conf.get(common.Constants.log_sleep_time_seconds), 10)
 
         # Setup ratelimit and blacklist response.
         self._setup_response()
@@ -115,10 +108,10 @@ class OpenStackRateLimitMiddleware(object):
 
         # Configurable scope in which a rate limit is applied. Defaults to initiator project id.
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
-        self.rate_limit_by = self.wsgi_config.get('rate_limit_by', common.Constants.initiator_project_id)
+        self.rate_limit_by = self.__conf.get('rate_limit_by', common.Constants.initiator_project_id)
 
         # Accuracy of the request timestamps used. Defaults to nanosecond accuracy.
-        clock_accuracy = int(1 / units.Units.parse(self.wsgi_config.get('clock_accuracy', '1ns')))
+        clock_accuracy = int(1 / units.Units.parse(self.__conf.get('clock_accuracy', '1ns')))
 
         self.backend = rate_limit_backend.RedisBackend(
             host=self.backend_host,
@@ -146,7 +139,7 @@ class OpenStackRateLimitMiddleware(object):
 
         # If limes is enabled and we want to rate limit by initiator|target project id,
         # Set LimesRateLimitProvider as the provider for rate limits.
-        limes_enabled = wsgi_config.get('limes_enabled', False)
+        limes_enabled = self.__conf.get('limes_enabled', False)
         if limes_enabled:
             self.__setup_limes_ratelimit_provider()
 
@@ -198,13 +191,13 @@ class OpenStackRateLimitMiddleware(object):
                 service_type=self.service_type,
                 redis_host=self.backend_host,
                 redis_port=self.backend_port,
-                refresh_interval_seconds=self.wsgi_config.get(common.Constants.limes_refresh_interval_seconds, 300),
-                limes_api_uri=self.wsgi_config.get(common.Constants.limes_api_uri),
-                auth_url=self.wsgi_config.get('identity_auth_url'),
-                username=self.wsgi_config.get('username'),
-                user_domain_name=self.wsgi_config.get('user_domain_name'),
-                password=self.wsgi_config.get('password'),
-                domain_name=self.wsgi_config.get('domain_name')
+                refresh_interval_seconds=self.__conf.get(common.Constants.limes_refresh_interval_seconds, 300),
+                limes_api_uri=self.__conf.get(common.Constants.limes_api_uri),
+                auth_url=self.__conf.get('identity_auth_url'),
+                username=self.__conf.get('username'),
+                user_domain_name=self.__conf.get('user_domain_name'),
+                password=self.__conf.get('password'),
+                domain_name=self.__conf.get('domain_name')
             )
             self.ratelimit_provider = limes_ratelimit_provider
 
@@ -217,7 +210,7 @@ class OpenStackRateLimitMiddleware(object):
         conf.update(local_config)
 
         def limiter(app):
-            return cls(app, conf)
+            return cls(app, **conf)
         return limiter
 
     def _rate_limit(self, scope, action, target_type_uri, **kwargs):
@@ -354,10 +347,13 @@ class OpenStackRateLimitMiddleware(object):
             if common.is_none_or_unknown(scope) or \
                common.is_none_or_unknown(action) or \
                common.is_none_or_unknown(target_type_uri):
+                path = str(environ.get('PATH_INFO', common.Constants.unknown))
+                method = str(environ.get('REQUEST_METHOD', common.Constants.unknown))
                 self.logger.debug(
-                    "request cannot be handled by rate limit middleware due to missing attributes: "
-                    "action: {0}, target_type_uri: {1}, scope: {2}".format(action, target_type_uri, scope)
+                    "unknown request: action: {0}, target_type_uri: {1}, scope: {2}, method: {3}, path: {4}"
+                    .format(action, target_type_uri, scope, method, path)
                 )
+
                 self.metricsClient.increment(
                     common.Constants.metric_requests_unknown_classification,
                     tags=[

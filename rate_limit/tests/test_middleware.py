@@ -12,14 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import unittest
 import os
 import time
+import unittest
 
-from rate_limit import OpenStackRateLimitMiddleware
-from rate_limit.response import RateLimitExceededResponse, BlacklistResponse
+from rate_limit.rate_limit import OpenStackRateLimitMiddleware
+from rate_limit.response import BlacklistResponse
+from rate_limit.response import RateLimitExceededResponse
 from . import fake
-
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
 SWIFTCONFIGPATH = WORKDIR + '/fixtures/swift.yaml'
@@ -32,12 +32,11 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
+
         self.app = OpenStackRateLimitMiddleware(
             app=fake.FakeApp(),
-            wsgi_config={
-                'config_file': SWIFTCONFIGPATH,
-                'max_sleep_time_seconds': 20,
-            }
+            config_file=SWIFTCONFIGPATH,
+            max_sleep_time_seconds=20
         )
         self.is_setup = True
 

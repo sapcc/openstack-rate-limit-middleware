@@ -7,3 +7,5 @@ requests>=2.14.2 # Apache-2.0
 six
 WebOb>=1.7.1 # MIT
 PyYAML
+oslo.config>=5.2.0
+oslo.log

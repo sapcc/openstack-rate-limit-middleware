@@ -30,8 +30,10 @@ class RateLimitProvider(object):
     def __init__(self, service_type, logger=log.Logger(__name__), **kwargs):
         self.service_type = service_type
         self.logger = logger
+        # Global rate limits counted across all scopes.
         self.global_ratelimits = {}
-        self.default_local_ratelimits = {}
+        # Local rate limits counted per scope.
+        self.local_ratelimits = {}
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -93,7 +95,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
         """
-        ttu_ratelimits = self.default_local_ratelimits.get(target_type_uri, [])
+        ttu_ratelimits = self.local_ratelimits.get(target_type_uri, [])
         for rl in ttu_ratelimits:
             ratelimit = rl.get('limit', None)
             if action == rl.get('action') and ratelimit:
@@ -109,7 +111,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         config = common.load_config(config_path)
         rates = config.get('rates', {})
         self.global_ratelimits = rates.get('global', {})
-        self.default_local_ratelimits = rates.get('default', {})
+        self.local_ratelimits = rates.get('default', {})
 
 
 class LimesRateLimitProvider(RateLimitProvider):

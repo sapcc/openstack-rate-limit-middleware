@@ -1,0 +1,1 @@
+.. mdinclude:: ../../docs/install.md

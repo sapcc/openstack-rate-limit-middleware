@@ -23,6 +23,6 @@ Moreover, this middleware uses `Redis >= 5.0.0` as a backend to store rate limit
 
 ## Documentation
 
-- [Installation & WSGI configuration](./docs/install.md)
-- [How to configure rate limits](./docs/configure.md)
-- [User guide](./docs/user.md)
+- [Installation & WSGI configuration](doc/source/install.rst)
+- [How to configure rate limits](doc/source/configure.rst)
+- [User guide](doc/source/user.rst)

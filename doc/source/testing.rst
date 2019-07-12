@@ -1,0 +1,1 @@
+.. mdinclude:: ../../docs/testing.md

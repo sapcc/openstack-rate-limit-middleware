@@ -13,9 +13,10 @@
 # under the License.
 
 from .rate_limit import OpenStackRateLimitMiddleware
+from .common import Constants
 
 
 def main(global_config, **settings):
     # Settings comes from paste deploy, whatever values were in the section of
     # the deployment config file.
-    return OpenStackRateLimitMiddleware
+    return OpenStackRateLimitMiddleware(global_config, **settings)
