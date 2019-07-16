@@ -36,8 +36,8 @@ source_suffix = ['.rst', '.md']
 master_doc = 'index'
 
 # General information about the project.
-project = u'doc8'
-copyright = u'2013, OpenStack Foundation'
+project = u'openstack-rate-limit-middleware'
+copyright = u'2019, SAP SE'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -67,5 +67,5 @@ latex_documents = [
     ('index',
      '%s.tex' % project,
      u'%s Documentation' % project,
-     u'OpenStack Foundation', 'manual'),
+     u'SAP SE', 'manual'),
 ]
