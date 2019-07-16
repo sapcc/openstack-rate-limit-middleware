@@ -16,3 +16,7 @@ clean-test: clean-pyc
 
 build: clean-build test
 	python setup.py sdist
+
+docs: 
+	tox -e docs
+

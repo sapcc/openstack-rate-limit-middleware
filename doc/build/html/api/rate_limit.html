@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rate_limit package &#8212; rate-limit-middleware 1.0.7.dev10 documentation</title>
+    <title>rate_limit package &#8212; rate-limit-middleware 1.0.7.dev12 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -149,6 +149,7 @@ If scope is not given (scope=None) the global (non-project specific) rate limit 
 <dt id="rate_limit.common.Constants">
 <em class="property">class </em><code class="descclassname">rate_limit.common.</code><code class="descname">Constants</code><a class="headerlink" href="#rate_limit.common.Constants" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Common constants used in various places.</p>
 <dl class="attribute">
 <dt id="rate_limit.common.Constants.blacklist_response">
 <code class="descname">blacklist_response</code><em class="property"> = 'blacklist_response'</em><a class="headerlink" href="#rate_limit.common.Constants.blacklist_response" title="Permalink to this definition">¶</a></dt>
@@ -422,7 +423,7 @@ If no scope is given (scope=None), the scope is global (global, non-project spec
 <dl class="function">
 <dt id="rate_limit.common.load_lua_script">
 <code class="descclassname">rate_limit.common.</code><code class="descname">load_lua_script</code><span class="sig-paren">(</span><em>filename</em>, <em>foldername='lua'</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.load_lua_script" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a lua scripts.</p>
+<dd><p>Load the specified LUA script.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -989,6 +990,12 @@ action          ( create, read, update, delete, authenticate, .. )</dd>
 
 <h3>Navigation</h3>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">OpenStack Rate Limit Middleware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html#wsgi-configuration">WSGI configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user.html">User documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user.html#with-delay">With delay</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">rate_limit package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tools.html">tools package</a></li>
@@ -1009,11 +1016,6 @@ action          ( create, read, update, delete, authenticate, .. )</dd>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tools.html">tools package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html#wsgi-configuration">WSGI configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user.html">User documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user.html#with-delay">With delay</a></li>
 </ul>
 
 <div class="relations">

@@ -6,12 +6,14 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   api/modules
-   api/rate_limit
-   api/tools
+   readme.md
    install
    testing
    user
+   api/modules
+   api/rate_limit
+   api/tools
+
 
 Indices and tables
 ==================
