@@ -33,6 +33,9 @@ CADF_SERVICE_TYPE_PREFIX_MAP = {
 
 
 class Constants(object):
+    """
+    Common constants used in various places.
+    """
     ratelimit_response = 'ratelimit_response'
     blacklist_response = 'blacklist_response'
     max_sleep_time_seconds = 'max_sleep_time_seconds'
@@ -196,7 +199,7 @@ def listitem_to_int(listthing, idx, default=0):
 
 def load_lua_script(filename, foldername="lua"):
     """
-    Load a lua scripts.
+    Load the specified LUA script.
 
     :param filename: the filename of the script
     :param foldername: the name of the folder containing the script
