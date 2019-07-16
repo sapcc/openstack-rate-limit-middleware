@@ -1,12 +1,16 @@
 {
-	"projects": [{
+	"projects": [
+		{
 			"id": "1233456789abcdef1233456789",
-			"services": [{
+			"services": [
+				{
 				"type": "object-store",
 				"area": "storage",
-				"rates": [{
-						"targetTypeURI": "account/container",
-						"actions": [{
+				"rates": [
+					{
+					"targetTypeURI": "account/container",
+						"actions": [
+							{
 								"name": "update",
 								"limit": "5r/m"
 							},
@@ -18,31 +22,38 @@
 					},
 					{
 						"targetTypeURI": "account/container/object",
-						"actions": [{
-							"name": "create",
-							"limit": "10r/s"
-						}]
+						"actions": [
+							{
+								"name": "create",
+								"limit": "10r/s"
+							}
+						]
 					}
-				]
-			}]
+					]
+				}
+			]
 		},
 		{
 			"id": "abcdef1233456789",
 			"services": [{
 				"type": "object-store",
 				"area": "storage",
-				"rates": [{
-					"targetTypeURI": "account/container/object",
-					"actions": [{
-						"name": "update",
-						"limit": "10r/m"
+				"rates": [
+					{
+						"targetTypeURI": "account/container/object",
+						"actions": [{
+							"name": "update",
+							"limit": "10r/m"
 					},
 					{
-						"name": "quark",
+						"name": "delete",
 						"limit": "1000r/s"
-					}]
-				}]
-			}]
+					}
+					]
+				}
+				]
+			}
+			]
 		}
 	]
 }
