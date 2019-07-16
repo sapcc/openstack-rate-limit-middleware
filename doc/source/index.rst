@@ -1,5 +1,5 @@
-Welcome to doc8's documentation!
-================================
+OpenStack Rate Limit Middleware API documentation
+=================================================
 
 Contents:
 

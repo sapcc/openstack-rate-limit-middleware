@@ -1,7 +1,12 @@
 CHANGES
 =======
 
-* default to oslo\_log
+* fix link
+* include docs
+* fix pep8
+* github pages
+* Set theme jekyll-theme-cayman
+* default to oslo\_log; use sphinx to generate docs
 * fix pep8
 * logging ignore error
 * changelog
