@@ -13,7 +13,6 @@
 # under the License.
 
 from .rate_limit import OpenStackRateLimitMiddleware
-from .common import Constants
 
 
 def main(global_config, **settings):

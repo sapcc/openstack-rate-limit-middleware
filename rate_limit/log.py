@@ -46,7 +46,7 @@ class Logger(object):
         except Exception:
             pass
 
-    def warning(self, msg):
+    def error(self, msg):
         try:
             self.__logger.error(msg)
         except Exception:
