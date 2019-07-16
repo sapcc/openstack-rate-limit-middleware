@@ -21,13 +21,12 @@ class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
+
         self.app = OpenStackRateLimitMiddleware(
             app=fake.FakeApp(),
-            wsgi_config={
-                'config_file': SWIFTCONFIGPATH,
-                'max_sleep_time_seconds': 15,
-                'service_type': SERVICE_TYPE
-            }
+            config_file=SWIFTCONFIGPATH,
+            max_sleep_time_seconds=15,
+            service_type=SERVICE_TYPE
         )
 
         limes_provider = provider.LimesRateLimitProvider(
