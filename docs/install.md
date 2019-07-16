@@ -6,7 +6,7 @@ Install this middleware via
 pip install git+https://github.com/sapcc/openstack-rate-limit-middleware.git 
 ```
 
-### Pipeline 
+# Pipeline 
 
 This middleware relies on the request classification provided by the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware)
 and must be added after it:
@@ -14,7 +14,7 @@ and must be added after it:
 pipeline = .. sapcc-watcher sapcc-rate-limit ..
 ```
 
-## WSGI configuration
+# WSGI configuration
 
 The following parameters are provided via the WSGI configuration:
 ```yaml

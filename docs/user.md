@@ -61,7 +61,7 @@ In addition the `openstack_ratelimit_requests_ratelimit_total` metric comes with
 
 This middleware is capable of handling a burst of requests as described hereinafter.
 
-## With delay
+# With delay
 
 This middleware handles requests that would exceed the configured rate by delaying them until the next possible slot but not longer than `max_sleep_time_seconds`.
 See the [WSGI section](install.md) on how to configure this. 
