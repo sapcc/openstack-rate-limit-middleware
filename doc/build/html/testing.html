@@ -1,0 +1,168 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Testing &#8212; rate-limit-middleware 1.0.7.dev4 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User documentation" href="user.html" />
+    <link rel="prev" title="Installation" href="install.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="testing">
+<h1>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h1>
+<p>This middleware offers a variety of options for rate limiting and traffic shaping for an OpenStack API.<span class="raw-html-m2r"><br></span>
+Whether the current configuration and behaviour matches the users expectations can be verified using <a class="reference external" href="https://github.com/JoeDog/siege">siege</a> - a load testing and benchmarking toolkit.
+Install on OSX using <a class="reference external" href="https://formulae.brew.sh/formula/siege">homebrew</a> <code class="docutils literal notranslate"><span class="pre">brew</span> <span class="pre">install</span> <span class="pre">siege</span></code>.</p>
+<p>Assuming that a valid token was issued by OpenStack Keystone and is available as <code class="docutils literal notranslate"><span class="pre">OS_AUTH_TOKEN</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain token.</span>
+<span class="nb">export</span> <span class="nv">OS_AUTH_TOKEN</span><span class="o">=</span><span class="k">$(</span>openstack token issue -c id -f value<span class="k">)</span>
+
+<span class="c1"># Send 10 concurrent requests to an endpoint and benchmark.</span>
+siege --concurrent<span class="o">=</span><span class="m">1</span> --reps<span class="o">=</span><span class="m">10</span> --benchmark -header<span class="o">=</span><span class="s2">&quot;X-AUTH-TOKEN:</span><span class="nv">$OS_AUTH_TOKEN</span><span class="s2">&quot;</span> https://<span class="nv">$OpenStackURI</span>
+</pre></div>
+</div>
+<p>Example:</p>
+<p>Test OpenStack Swift <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">account/container</span></code></p>
+<ol class="arabic simple">
+<li>Send 3 concurrent POST requests to update a Swift container using <code class="docutils literal notranslate"><span class="pre">siege</span></code>:</li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>siege --concurrent<span class="o">=</span><span class="m">1</span> --reps<span class="o">=</span><span class="m">3</span> --benchmark --header<span class="o">=</span><span class="s2">&quot;X-AUTH-TOKEN:</span><span class="nv">$OS_AUTH_TOKEN</span><span class="s2">&quot;</span> <span class="s1">&#39;https://$OpenStackURI/v1/AUTH_$ProjectID/mycontainer POST&#39;</span>
+</pre></div>
+</div>
+<p>The output for a rate of <code class="docutils literal notranslate"><span class="pre">1r/m</span></code> and <code class="docutils literal notranslate"><span class="pre">max_delay_seconds=0</span></code> (nodelay) could look as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>The server is now under siege...
+HTTP/1.1 <span class="m">204</span>     <span class="m">0</span>.20 secs:       <span class="m">0</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.09 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.11 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+</pre></div>
+</div>
+<p>Only the 1st request is processed and the 2 subsequent, almost concurrently issued, requests are rejected as the rate limit of <code class="docutils literal notranslate"><span class="pre">1r/m</span></code> is exceeded.</p>
+<ol class="arabic simple" start="2">
+<li>Send 10 requests with a a random delay of 1s to 10s between each request:</li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>siege --reps<span class="o">=</span><span class="m">10</span> --delay<span class="o">=</span><span class="m">10</span> --header<span class="o">=</span><span class="s2">&quot;X-AUTH-TOKEN:</span><span class="nv">$OS_AUTH_TOKEN</span><span class="s2">&quot;</span> <span class="s1">&#39;https://$OpenStackURI/v1/AUTH_$ProjectID/mycontainer POST&#39;</span>
+</pre></div>
+</div>
+<p>The output for a rate of <code class="docutils literal notranslate"><span class="pre">2r/m</span></code> and <code class="docutils literal notranslate"><span class="pre">max_delay_seconds=20</span></code> could look as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>The server is now under siege...
+HTTP/1.1 <span class="m">204</span>     <span class="m">0</span>.36 secs:       <span class="m">0</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">204</span>     <span class="m">0</span>.22 secs:       <span class="m">0</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.10 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.11 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.12 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">498</span>     <span class="m">0</span>.10 secs:      <span class="m">19</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">204</span>    <span class="m">19</span>.72 secs:       <span class="m">0</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+HTTP/1.1 <span class="m">204</span>     <span class="m">0</span>.11 secs:       <span class="m">0</span> <span class="nv">bytes</span> <span class="o">==</span>&gt; POST https://<span class="nv">$OpenStackURI</span>/v1/AUTH_<span class="nv">$ProjectID</span>/mycontainer
+...
+</pre></div>
+</div>
+<p>The 1st and 2nd request are successfully processed within the rate limit of <code class="docutils literal notranslate"><span class="pre">2r/m</span></code>.
+The 3rd to 6th requests are rejected as the rate limit is exceeded and the request would need to be suspended for longer than <code class="docutils literal notranslate"><span class="pre">max_delay_seconds</span></code>.
+However, the 7th request still exceeds the rate limit but reaches the API just less than 20s before it could be successfully processed according to the rate limit.
+Thus it is suspended for ~19 seconds and processed afterwards as indicated by the relatively long transaction time.</p>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rate-limit-middleware</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/rate_limit.html">rate_limit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/tools.html">tools package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html#wsgi-configuration">WSGI configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html#with-delay">With delay</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="install.html" title="previous chapter">Installation</a></li>
+      <li>Next: <a href="user.html" title="next chapter">User documentation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013, OpenStack Foundation.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/testing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

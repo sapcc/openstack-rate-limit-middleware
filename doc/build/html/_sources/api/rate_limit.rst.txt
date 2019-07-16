@@ -1,0 +1,85 @@
+rate\_limit package
+===================
+
+Subpackages
+-----------
+
+.. toctree::
+
+    rate_limit.tests
+
+Submodules
+----------
+
+rate\_limit.backend module
+--------------------------
+
+.. automodule:: rate_limit.backend
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.common module
+-------------------------
+
+.. automodule:: rate_limit.common
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.errors module
+-------------------------
+
+.. automodule:: rate_limit.errors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.log module
+----------------------
+
+.. automodule:: rate_limit.log
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.provider module
+---------------------------
+
+.. automodule:: rate_limit.provider
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.rate\_limit module
+------------------------------
+
+.. automodule:: rate_limit.rate_limit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.response module
+---------------------------
+
+.. automodule:: rate_limit.response
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.units module
+------------------------
+
+.. automodule:: rate_limit.units
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: rate_limit
+    :members:
+    :undoc-members:
+    :show-inheritance:

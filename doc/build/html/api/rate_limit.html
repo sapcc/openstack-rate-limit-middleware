@@ -1,0 +1,1061 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rate_limit package &#8212; rate-limit-middleware 1.0.7.dev4 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="rate_limit.tests package" href="rate_limit.tests.html" />
+    <link rel="prev" title="Modules" href="modules.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="rate-limit-package">
+<h1>rate_limit package<a class="headerlink" href="#rate-limit-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rate_limit.tests.html">rate_limit.tests package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.fake">rate_limit.tests.fake module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_actiongroups">rate_limit.tests.test_actiongroups module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_limesratelimitprovider">rate_limit.tests.test_limesratelimitprovider module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_middleware">rate_limit.tests.test_middleware module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_parse_config">rate_limit.tests.test_parse_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_response">rate_limit.tests.test_response module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests.test_units">rate_limit.tests.test_units module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rate_limit.tests.html#module-rate_limit.tests">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rate_limit.backend">
+<span id="rate-limit-backend-module"></span><h2>rate_limit.backend module<a class="headerlink" href="#module-rate_limit.backend" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.backend.Backend">
+<em class="property">class </em><code class="descclassname">rate_limit.backend.</code><code class="descname">Backend</code><span class="sig-paren">(</span><em>host</em>, <em>port</em>, <em>rate_limit_response</em>, <em>logger=&lt;rate_limit.log.Logger object&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.Backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Backend for storing rate limits.</p>
+<dl class="method">
+<dt id="rate_limit.backend.Backend.is_available">
+<code class="descname">is_available</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.Backend.is_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether the backend is available and the version supported.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bool whether it’s available, string describing the error (if any)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.backend.Backend.rate_limit">
+<code class="descname">rate_limit</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em>, <em>max_rate_string</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.Backend.rate_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
+If scope is not given (scope=None) the global (non-project specific) rate limit is checked.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the scope (project uuid, host ip, etc., ..) or None for global rate limits</li>
+<li><strong>action</strong> – the CADF action</li>
+<li><strong>target_type_uri</strong> – the CADF target type URI</li>
+<li><strong>max_rate_string</strong> – the max. rate limit per sliding window</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the configured RateLimitResponse or None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rate_limit.backend.RedisBackend">
+<em class="property">class </em><code class="descclassname">rate_limit.backend.</code><code class="descname">RedisBackend</code><span class="sig-paren">(</span><em>host</em>, <em>port</em>, <em>rate_limit_response</em>, <em>max_sleep_time_seconds</em>, <em>log_sleep_time_seconds</em>, <em>logger=&lt;rate_limit.log.Logger object&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.RedisBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rate_limit.backend.Backend" title="rate_limit.backend.Backend"><code class="xref py py-class docutils literal notranslate"><span class="pre">rate_limit.backend.Backend</span></code></a></p>
+<p>Stable Redis backend for storing rate limits.</p>
+<dl class="method">
+<dt id="rate_limit.backend.RedisBackend.is_available">
+<code class="descname">is_available</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.RedisBackend.is_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether the redis is available and supported.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.backend.RedisBackend.rate_limit">
+<code class="descname">rate_limit</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em>, <em>max_rate_string</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.backend.RedisBackend.rate_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
+If scope is not given (scope=None) the global (non-project specific) rate limit is checked.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the scope (project uuid, host ip, etc., ..) or None for global rate limits</li>
+<li><strong>action</strong> – the CADF action</li>
+<li><strong>target_type_uri</strong> – the CADF target type URI</li>
+<li><strong>max_rate_string</strong> – the max. rate limit per sliding window</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the configured RateLimitResponse or None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.common">
+<span id="rate-limit-common-module"></span><h2>rate_limit.common module<a class="headerlink" href="#module-rate_limit.common" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.common.Constants">
+<em class="property">class </em><code class="descclassname">rate_limit.common.</code><code class="descname">Constants</code><a class="headerlink" href="#rate_limit.common.Constants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.blacklist_response">
+<code class="descname">blacklist_response</code><em class="property"> = 'blacklist_response'</em><a class="headerlink" href="#rate_limit.common.Constants.blacklist_response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.content_type_html">
+<code class="descname">content_type_html</code><em class="property"> = 'text/html'</em><a class="headerlink" href="#rate_limit.common.Constants.content_type_html" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.content_type_json">
+<code class="descname">content_type_json</code><em class="property"> = 'application/json'</em><a class="headerlink" href="#rate_limit.common.Constants.content_type_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.header_ratelimit_limit">
+<code class="descname">header_ratelimit_limit</code><em class="property"> = 'X-RateLimit-Limit'</em><a class="headerlink" href="#rate_limit.common.Constants.header_ratelimit_limit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.header_ratelimit_remaining">
+<code class="descname">header_ratelimit_remaining</code><em class="property"> = 'X-RateLimit-Remaining'</em><a class="headerlink" href="#rate_limit.common.Constants.header_ratelimit_remaining" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.header_ratelimit_reset">
+<code class="descname">header_ratelimit_reset</code><em class="property"> = 'X-RateLimit-Retry-After'</em><a class="headerlink" href="#rate_limit.common.Constants.header_ratelimit_reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.header_ratelimit_retry_after">
+<code class="descname">header_ratelimit_retry_after</code><em class="property"> = 'X-Retry-After'</em><a class="headerlink" href="#rate_limit.common.Constants.header_ratelimit_retry_after" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.initiator_host_address">
+<code class="descname">initiator_host_address</code><em class="property"> = 'initiator_host_address'</em><a class="headerlink" href="#rate_limit.common.Constants.initiator_host_address" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.initiator_project_id">
+<code class="descname">initiator_project_id</code><em class="property"> = 'initiator_project_id'</em><a class="headerlink" href="#rate_limit.common.Constants.initiator_project_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.limes_api_uri">
+<code class="descname">limes_api_uri</code><em class="property"> = 'limes_api_uri'</em><a class="headerlink" href="#rate_limit.common.Constants.limes_api_uri" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.limes_refresh_interval_seconds">
+<code class="descname">limes_refresh_interval_seconds</code><em class="property"> = 'limes_refresh_interval_seconds'</em><a class="headerlink" href="#rate_limit.common.Constants.limes_refresh_interval_seconds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.limes_service_type">
+<code class="descname">limes_service_type</code><em class="property"> = 'limes'</em><a class="headerlink" href="#rate_limit.common.Constants.limes_service_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.log_sleep_time_seconds">
+<code class="descname">log_sleep_time_seconds</code><em class="property"> = 'log_sleep_time_seoncds'</em><a class="headerlink" href="#rate_limit.common.Constants.log_sleep_time_seconds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.max_sleep_time_seconds">
+<code class="descname">max_sleep_time_seconds</code><em class="property"> = 'max_sleep_time_seconds'</em><a class="headerlink" href="#rate_limit.common.Constants.max_sleep_time_seconds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_errors_total">
+<code class="descname">metric_errors_total</code><em class="property"> = 'errors_total'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_errors_total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_prefix">
+<code class="descname">metric_prefix</code><em class="property"> = 'openstack_ratelimit'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_prefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_requests_blacklisted_total">
+<code class="descname">metric_requests_blacklisted_total</code><em class="property"> = 'requests_blacklisted_total'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_requests_blacklisted_total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_requests_ratelimit_total">
+<code class="descname">metric_requests_ratelimit_total</code><em class="property"> = 'requests_ratelimit_total'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_requests_ratelimit_total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_requests_unknown_classification">
+<code class="descname">metric_requests_unknown_classification</code><em class="property"> = 'requests_unknown_classification_total'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_requests_unknown_classification" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.metric_requests_whitelisted_total">
+<code class="descname">metric_requests_whitelisted_total</code><em class="property"> = 'requests_whitelisted_total'</em><a class="headerlink" href="#rate_limit.common.Constants.metric_requests_whitelisted_total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.ratelimit_response">
+<code class="descname">ratelimit_response</code><em class="property"> = 'ratelimit_response'</em><a class="headerlink" href="#rate_limit.common.Constants.ratelimit_response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.target_project_id">
+<code class="descname">target_project_id</code><em class="property"> = 'target_project_id'</em><a class="headerlink" href="#rate_limit.common.Constants.target_project_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.common.Constants.unknown">
+<code class="descname">unknown</code><em class="property"> = 'unknown'</em><a class="headerlink" href="#rate_limit.common.Constants.unknown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.build_uri">
+<code class="descclassname">rate_limit.common.</code><code class="descname">build_uri</code><span class="sig-paren">(</span><em>base</em>, <em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.build_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the URI using base and path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>base</strong> – </li>
+<li><strong>path</strong> – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.find_item_by_key_in_list">
+<code class="descclassname">rate_limit.common.</code><code class="descname">find_item_by_key_in_list</code><span class="sig-paren">(</span><em>item</em>, <em>key</em>, <em>list_to_search</em>, <em>empty_item={}</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.find_item_by_key_in_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find an item in a list by its key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>item</strong> – the item we’re looking for</li>
+<li><strong>key</strong> – the key by which the item can be identified</li>
+<li><strong>list_to_search</strong> – list of items</li>
+<li><strong>empty_item</strong> – is returned when the item could not be found</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.is_none_or_unknown">
+<code class="descclassname">rate_limit.common.</code><code class="descname">is_none_or_unknown</code><span class="sig-paren">(</span><em>thing</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.is_none_or_unknown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a thing is None or unknown.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>thing</strong> – the cadf action, cadf target_type_uri, ..</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether thing is None or unknown</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.is_ratelimit_by_project_id">
+<code class="descclassname">rate_limit.common.</code><code class="descname">is_ratelimit_by_project_id</code><span class="sig-paren">(</span><em>ratelimit_by</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.is_ratelimit_by_project_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether the scope is the initiator or target project id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ratelimit_by</strong> – the configurable scope by which is rate limited</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether the scope is initiator|target project id</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.is_unlimited">
+<code class="descclassname">rate_limit.common.</code><code class="descname">is_unlimited</code><span class="sig-paren">(</span><em>rate_limit</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.is_unlimited" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether a rate limit is None or unlimited (indicated by ‘-1’).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rate_limit</strong> – the rate limit to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.key_func">
+<code class="descclassname">rate_limit.common.</code><code class="descname">key_func</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.key_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the key based on scope, action, target_type_uri: ‘&lt;scope&gt;_&lt;action&gt;_&lt;target_type_uri&gt;’.
+If no scope is given (scope=None), the scope is global (global, non-project specific rate limits).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the identifier of the scope (project uid, user uid, ip addr, ..) or ‘global’</li>
+<li><strong>action</strong> – the cadf action</li>
+<li><strong>target_type_uri</strong> – the target type uri of the request</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the key ‘&lt;scope&gt;_&lt;action&gt;_&lt;target_type_uri&gt;’</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.listitem_to_int">
+<code class="descclassname">rate_limit.common.</code><code class="descname">listitem_to_int</code><span class="sig-paren">(</span><em>listthing</em>, <em>idx</em>, <em>default=0</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.listitem_to_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Safely get an item by index from a list.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>listthing</strong> – the list</li>
+<li><strong>idx</strong> – the index of the item</li>
+<li><strong>default</strong> – the default value if item not found</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the item as int or the default value</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.load_config">
+<code class="descclassname">rate_limit.common.</code><code class="descname">load_config</code><span class="sig-paren">(</span><em>cfg_file</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a yaml configuration as a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cfg_file</strong> – path to the yaml configuration file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the configuration as dictionary</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.load_lua_script">
+<code class="descclassname">rate_limit.common.</code><code class="descname">load_lua_script</code><span class="sig-paren">(</span><em>filename</em>, <em>foldername='lua'</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.load_lua_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a lua scripts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filename</strong> – the filename of the script</li>
+<li><strong>foldername</strong> – the name of the folder containing the script</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the content or None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.printable_timestamp">
+<code class="descclassname">rate_limit.common.</code><code class="descname">printable_timestamp</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.printable_timestamp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.common.to_int">
+<code class="descclassname">rate_limit.common.</code><code class="descname">to_int</code><span class="sig-paren">(</span><em>raw_value</em>, <em>default=0</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.common.to_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Safely parse a raw value and convert to an integer.
+If that fails return the default value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raw_value</strong> – the raw value</li>
+<li><strong>default</strong> – the fallback value if conversion fails</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the value as int or None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.errors">
+<span id="rate-limit-errors-module"></span><h2>rate_limit.errors module<a class="headerlink" href="#module-rate_limit.errors" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="rate_limit.errors.ConfigError">
+<em class="property">exception </em><code class="descclassname">rate_limit.errors.</code><code class="descname">ConfigError</code><a class="headerlink" href="#rate_limit.errors.ConfigError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">exceptions.Exception</span></code></p>
+<p>Raised when configuration could not be loaded or interpreted.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="rate_limit.errors.LimesError">
+<em class="property">exception </em><code class="descclassname">rate_limit.errors.</code><code class="descname">LimesError</code><a class="headerlink" href="#rate_limit.errors.LimesError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">exceptions.Exception</span></code></p>
+<p>Raised when rate limits cannot be fetched from limes.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="rate_limit.errors.UnitConversionError">
+<em class="property">exception </em><code class="descclassname">rate_limit.errors.</code><code class="descname">UnitConversionError</code><a class="headerlink" href="#rate_limit.errors.UnitConversionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">exceptions.Exception</span></code></p>
+<p>Raised when a unit is invalid and cannot be converted.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.log">
+<span id="rate-limit-log-module"></span><h2>rate_limit.log module<a class="headerlink" href="#module-rate_limit.log" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.log.Logger">
+<em class="property">class </em><code class="descclassname">rate_limit.log.</code><code class="descname">Logger</code><span class="sig-paren">(</span><em>name</em>, <em>product_name='rate_limit'</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.log.Logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Logger that attempts to log and ignores any error.</p>
+<dl class="method">
+<dt id="rate_limit.log.Logger.debug">
+<code class="descname">debug</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.log.Logger.debug" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.log.Logger.info">
+<code class="descname">info</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.log.Logger.info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.log.Logger.warning">
+<code class="descname">warning</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.log.Logger.warning" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.provider">
+<span id="rate-limit-provider-module"></span><h2>rate_limit.provider module<a class="headerlink" href="#module-rate_limit.provider" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.provider.ConfigurationRateLimitProvider">
+<em class="property">class </em><code class="descclassname">rate_limit.provider.</code><code class="descname">ConfigurationRateLimitProvider</code><span class="sig-paren">(</span><em>service_type</em>, <em>logger=&lt;rate_limit.log.Logger object&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.ConfigurationRateLimitProvider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rate_limit.provider.RateLimitProvider" title="rate_limit.provider.RateLimitProvider"><code class="xref py py-class docutils literal notranslate"><span class="pre">rate_limit.provider.RateLimitProvider</span></code></a></p>
+<p>The provider to obtain rate limits from a configuration file.</p>
+<dl class="method">
+<dt id="rate_limit.provider.ConfigurationRateLimitProvider.get_global_rate_limits">
+<code class="descname">get_global_rate_limits</code><span class="sig-paren">(</span><em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.ConfigurationRateLimitProvider.get_global_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the global rate limit per action and target type URI.
+Returns -1 if unlimited.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>action</strong> – the CADF action for the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the global rate limit or -1 (unlimited) if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.provider.ConfigurationRateLimitProvider.get_local_rate_limits">
+<code class="descname">get_local_rate_limits</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.ConfigurationRateLimitProvider.get_local_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the UUID of the project, domain or the IP</li>
+<li><strong>action</strong> – the CADF action of the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the local rate limit or -1 if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.provider.ConfigurationRateLimitProvider.read_rate_limits_from_config">
+<code class="descname">read_rate_limits_from_config</code><span class="sig-paren">(</span><em>config_path</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.ConfigurationRateLimitProvider.read_rate_limits_from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read rate limits from configuration file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config_path</strong> – path to the configuration file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rate_limit.provider.LimesRateLimitProvider">
+<em class="property">class </em><code class="descclassname">rate_limit.provider.</code><code class="descname">LimesRateLimitProvider</code><span class="sig-paren">(</span><em>service_type</em>, <em>logger=&lt;rate_limit.log.Logger object&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.LimesRateLimitProvider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rate_limit.provider.RateLimitProvider" title="rate_limit.provider.RateLimitProvider"><code class="xref py py-class docutils literal notranslate"><span class="pre">rate_limit.provider.RateLimitProvider</span></code></a></p>
+<p>The provider to obtain rate limits from limes.</p>
+<dl class="method">
+<dt id="rate_limit.provider.LimesRateLimitProvider.get_global_rate_limits">
+<code class="descname">get_global_rate_limits</code><span class="sig-paren">(</span><em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.LimesRateLimitProvider.get_global_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the global rate limit per action and target type URI.
+Returns -1 if unlimited.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>action</strong> – the cadf action for the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the global rate limit or -1 if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.provider.LimesRateLimitProvider.get_local_rate_limits">
+<code class="descname">get_local_rate_limits</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.LimesRateLimitProvider.get_local_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the UUID of the project, domain or the IP</li>
+<li><strong>action</strong> – the cadf action of the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters. should contain the domain id</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the local rate limit or -1 if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.provider.LimesRateLimitProvider.list_ratelimits_for_projects_in_domain">
+<code class="descname">list_ratelimits_for_projects_in_domain</code><span class="sig-paren">(</span><em>project_id</em>, <em>domain_id=None</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.LimesRateLimitProvider.list_ratelimits_for_projects_in_domain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query limes for rate limits for projects in a domain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>domain_id</strong> – the domain uid</li>
+<li><strong>project_id</strong> – optional project uid</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dictionary of projects and their rates in the given domain</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rate_limit.provider.RateLimitProvider">
+<em class="property">class </em><code class="descclassname">rate_limit.provider.</code><code class="descname">RateLimitProvider</code><span class="sig-paren">(</span><em>service_type</em>, <em>logger=&lt;rate_limit.log.Logger object&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.RateLimitProvider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Interface to obtain rate limits from different sources.</p>
+<dl class="method">
+<dt id="rate_limit.provider.RateLimitProvider.get_global_rate_limits">
+<code class="descname">get_global_rate_limits</code><span class="sig-paren">(</span><em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.RateLimitProvider.get_global_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the global rate limit per action and target type URI.
+Returns -1 if unlimited.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>action</strong> – the CADF action for the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the global rate limit or -1 if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.provider.RateLimitProvider.get_local_rate_limits">
+<code class="descname">get_local_rate_limits</code><span class="sig-paren">(</span><em>scope</em>, <em>action</em>, <em>target_type_uri</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.provider.RateLimitProvider.get_local_rate_limits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the local (project/domain/ip, ..) rate limit per scope, action, target type URI.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> – the UUID of the project, domain or the IP</li>
+<li><strong>action</strong> – the CADF action of the request</li>
+<li><strong>target_type_uri</strong> – the target type URI of the request</li>
+<li><strong>kwargs</strong> – optional, additional parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the local rate limit or -1 if not set</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.rate_limit">
+<span id="rate-limit-rate-limit-module"></span><h2>rate_limit.rate_limit module<a class="headerlink" href="#module-rate_limit.rate_limit" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware">
+<em class="property">class </em><code class="descclassname">rate_limit.rate_limit.</code><code class="descname">OpenStackRateLimitMiddleware</code><span class="sig-paren">(</span><em>app</em>, <em>**conf</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>OpenStack Rate Limit Middleware enforces configurable rate limits.</p>
+<dl class="docutils">
+<dt>Per combination of:</dt>
+<dd>service         ( compute, identity, object-store, .. )
+scope           ( initiator|target project uid, initiator host address )
+target_type_uri ( service/compute/servers, service/storage/block/volumes,.. )
+action          ( create, read, update, delete, authenticate, .. )</dd>
+</dl>
+<dl class="classmethod">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>global_config</em>, <em>**local_config</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.factory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.get_action_from_rate_limit_groups">
+<code class="descname">get_action_from_rate_limit_groups</code><span class="sig-paren">(</span><em>action</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.get_action_from_rate_limit_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiple CADF actions can be grouped and accounted as one entity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>action</strong> – the original CADF action</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the original action or action as per grouping</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.get_scope_action_target_type_uri_from_environ">
+<code class="descname">get_scope_action_target_type_uri_from_environ</code><span class="sig-paren">(</span><em>environ</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.get_scope_action_target_type_uri_from_environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the scope, action, target type URI from the request environ.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>environ</strong> – the request environ</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tuple of scope, action, target type URI</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_scope_blacklisted">
+<code class="descname">is_scope_blacklisted</code><span class="sig-paren">(</span><em>key_to_check</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_scope_blacklisted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether a scope (user_id, project_id or client ip) is blacklisted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key_to_check</strong> – the user, project uid or client ip</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether the key is blacklisted</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_scope_whitelisted">
+<code class="descname">is_scope_whitelisted</code><span class="sig-paren">(</span><em>key_to_check</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_scope_whitelisted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether a scope (user_id, project_id or client ip) is whitelisted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key_to_check</strong> – the user, project uid or client ip</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether the key is whitelisted</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_user_blacklisted">
+<code class="descname">is_user_blacklisted</code><span class="sig-paren">(</span><em>user_to_check</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_user_blacklisted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether a user is blacklisted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>user_to_check</strong> – the name of the user to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether user is blacklisted</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_user_whitelisted">
+<code class="descname">is_user_whitelisted</code><span class="sig-paren">(</span><em>user_to_check</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.rate_limit.OpenStackRateLimitMiddleware.is_user_whitelisted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether a user is whitelisted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>user_to_check</strong> – the name of the user to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool whether user is whitelisted</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.response">
+<span id="rate-limit-response-module"></span><h2>rate_limit.response module<a class="headerlink" href="#module-rate_limit.response" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.response.BlacklistResponse">
+<em class="property">class </em><code class="descclassname">rate_limit.response.</code><code class="descname">BlacklistResponse</code><span class="sig-paren">(</span><em>status='497 Blacklisted'</em>, <em>status_code=497</em>, <em>headerlist=None</em>, <em>body=None</em>, <em>json_body=None</em>, <em>environ=None</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.BlacklistResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">webob.response.Response</span></code></p>
+<p>The blacklist response and defaults, which can be overwritten via configuration.</p>
+<dl class="method">
+<dt id="rate_limit.response.BlacklistResponse.set_environ">
+<code class="descname">set_environ</code><span class="sig-paren">(</span><em>environ</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.BlacklistResponse.set_environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the environ of the request triggering this response.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rate_limit.response.RateLimitExceededResponse">
+<em class="property">class </em><code class="descclassname">rate_limit.response.</code><code class="descname">RateLimitExceededResponse</code><span class="sig-paren">(</span><em>status='429 Too Many Requests'</em>, <em>status_code=429</em>, <em>headerlist=None</em>, <em>body=None</em>, <em>json_body=None</em>, <em>environ=None</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.RateLimitExceededResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">webob.response.Response</span></code></p>
+<p>The rate limit response and defaults, which can be overwritten via configuration.</p>
+<dl class="method">
+<dt id="rate_limit.response.RateLimitExceededResponse.set_environ">
+<code class="descname">set_environ</code><span class="sig-paren">(</span><em>environ</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.RateLimitExceededResponse.set_environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the environ of the request triggering this response.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rate_limit.response.RateLimitExceededResponse.set_headers">
+<code class="descname">set_headers</code><span class="sig-paren">(</span><em>ratelimit</em>, <em>remaining</em>, <em>retry_after</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.RateLimitExceededResponse.set_headers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set response headers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ratelimit</strong> – the limit for the current request in the format &lt;n&gt;r/&lt;m&gt;&lt;t&gt;</li>
+<li><strong>remaining</strong> – the number of remaining requests within the current window</li>
+<li><strong>retry_after</strong> – the remaining window before the rate limit resets in seconds</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rate_limit.response.response_parameters_from_config">
+<code class="descclassname">rate_limit.response.</code><code class="descname">response_parameters_from_config</code><span class="sig-paren">(</span><em>response_config</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.response.response_parameters_from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get custom response from configuration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>response_config</strong> – the configuration of the response</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">code, headers, content_type, body, json_body</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit.units">
+<span id="rate-limit-units-module"></span><h2>rate_limit.units module<a class="headerlink" href="#module-rate_limit.units" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rate_limit.units.Units">
+<em class="property">class </em><code class="descclassname">rate_limit.units.</code><code class="descname">Units</code><a class="headerlink" href="#rate_limit.units.Units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Defines the units that can be used to rate limit requests.</p>
+<dl class="attribute">
+<dt id="rate_limit.units.Units.DAY">
+<code class="descname">DAY</code><em class="property"> = 'd'</em><a class="headerlink" href="#rate_limit.units.Units.DAY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.HOUR">
+<code class="descname">HOUR</code><em class="property"> = 'h'</em><a class="headerlink" href="#rate_limit.units.Units.HOUR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.MILLISECOND">
+<code class="descname">MILLISECOND</code><em class="property"> = 'ms'</em><a class="headerlink" href="#rate_limit.units.Units.MILLISECOND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.MINUTE">
+<code class="descname">MINUTE</code><em class="property"> = 'm'</em><a class="headerlink" href="#rate_limit.units.Units.MINUTE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.NANOSECOND">
+<code class="descname">NANOSECOND</code><em class="property"> = 'ns'</em><a class="headerlink" href="#rate_limit.units.Units.NANOSECOND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.SECOND">
+<code class="descname">SECOND</code><em class="property"> = 's'</em><a class="headerlink" href="#rate_limit.units.Units.SECOND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.get_conversion_factor">
+<code class="descname">get_conversion_factor</code><em class="property"> = &lt;function get_conversion_factor&gt;</em><a class="headerlink" href="#rate_limit.units.Units.get_conversion_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.parse">
+<code class="descname">parse</code><em class="property"> = &lt;function parse&gt;</em><a class="headerlink" href="#rate_limit.units.Units.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.parse_and_convert_to_per_seconds">
+<code class="descname">parse_and_convert_to_per_seconds</code><em class="property"> = &lt;function parse_and_convert_to_per_seconds&gt;</em><a class="headerlink" href="#rate_limit.units.Units.parse_and_convert_to_per_seconds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rate_limit.units.Units.parse_sliding_window_rate_limit">
+<code class="descname">parse_sliding_window_rate_limit</code><em class="property"> = &lt;function parse_sliding_window_rate_limit&gt;</em><a class="headerlink" href="#rate_limit.units.Units.parse_sliding_window_rate_limit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rate_limit">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-rate_limit" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="rate_limit.main">
+<code class="descclassname">rate_limit.</code><code class="descname">main</code><span class="sig-paren">(</span><em>global_config</em>, <em>**settings</em><span class="sig-paren">)</span><a class="headerlink" href="#rate_limit.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">rate-limit-middleware</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Modules</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">rate_limit package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.backend">rate_limit.backend module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.common">rate_limit.common module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.errors">rate_limit.errors module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.log">rate_limit.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.provider">rate_limit.provider module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.rate_limit">rate_limit.rate_limit module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.response">rate_limit.response module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit.units">rate_limit.units module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-rate_limit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tools.html">tools package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html#wsgi-configuration">WSGI configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user.html">User documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user.html#with-delay">With delay</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Modules</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">Modules</a></li>
+      <li>Next: <a href="rate_limit.tests.html" title="next chapter">rate_limit.tests package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013, OpenStack Foundation.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/api/rate_limit.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,70 @@
+rate\_limit.tests package
+=========================
+
+Submodules
+----------
+
+rate\_limit.tests.fake module
+-----------------------------
+
+.. automodule:: rate_limit.tests.fake
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_actiongroups module
+-------------------------------------------
+
+.. automodule:: rate_limit.tests.test_actiongroups
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_limesratelimitprovider module
+-----------------------------------------------------
+
+.. automodule:: rate_limit.tests.test_limesratelimitprovider
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_middleware module
+-----------------------------------------
+
+.. automodule:: rate_limit.tests.test_middleware
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_parse\_config module
+--------------------------------------------
+
+.. automodule:: rate_limit.tests.test_parse_config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_response module
+---------------------------------------
+
+.. automodule:: rate_limit.tests.test_response
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+rate\_limit.tests.test\_units module
+------------------------------------
+
+.. automodule:: rate_limit.tests.test_units
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: rate_limit.tests
+    :members:
+    :undoc-members:
+    :show-inheritance:

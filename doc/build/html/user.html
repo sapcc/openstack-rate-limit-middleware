@@ -1,0 +1,243 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>User documentation &#8212; rate-limit-middleware 1.0.7.dev4 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Testing" href="testing.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="user-documentation">
+<h1>User documentation<a class="headerlink" href="#user-documentation" title="Permalink to this headline">¶</a></h1>
+<p>The OpenStack rate limit middleware allows controlling the number of incoming requests on a global and project level as well as per host IP for an OpenStack API.
+Additionally, this middleware supports slowing down requests instead of immediately returning a rate limit response.
+A request can be suspended for configurable duration in order to fit the rate limit.</p>
+<p>The response will indicate if the user was rate limited provide additional information via headers as shown below.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Header</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>X-RateLimit-Limit</td>
+<td>The limit for the current request in the format <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;r/&lt;m&gt;&lt;t&gt;</span></code>. <span class="raw-html-m2r"><br></span> Read: Limit to <code class="docutils literal notranslate"><span class="pre">n</span></code> requests per window <code class="docutils literal notranslate"><span class="pre">m</span></code> <span class="raw-html-m2r"><unit></span>. Valid interval units are <code class="docutils literal notranslate"><span class="pre">s,</span> <span class="pre">m,</span> <span class="pre">h,</span> <span class="pre">d</span></code>.</td>
+</tr>
+<tr class="row-odd"><td>X-RateLimit-Remaining</td>
+<td>The amount of remaining requests within the current window.</td>
+</tr>
+<tr class="row-even"><td>X-RateLimit-Retry-After</td>
+<td>How long a client should wait before attempting to make another request.</td>
+</tr>
+<tr class="row-odd"><td>X-Retry-After</td>
+<td>For compatibility with OpenStack Swift. Same as <code class="docutils literal notranslate"><span class="pre">X-RateLimit-Retry-After</span></code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Example when <em>not</em> being rate limited:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -i https://<span class="nv">$openstackAPI</span>
+HTTP/1.1 <span class="m">200</span> OK
+Status: <span class="m">200</span> OK
+</pre></div>
+</div>
+<p>Example when sending too many requests in a given amount of time (sliding window):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -i https://<span class="nv">$openstackAPI</span>
+HTTP/1.1 <span class="m">429</span> Too Many Requests
+Status: <span class="m">429</span> Too Many Requests
+X-RateLimit-Limit: 60r/m
+X-RateLimit-Remaining: <span class="m">0</span>
+X-RateLimit-Reset: <span class="m">60</span>
+X-Retry-After: <span class="m">60</span>
+</pre></div>
+</div>
+<div class="section" id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h2>
+<p>This middleware emits the following <a class="reference external" href="https://prometheus.io/docs/concepts/metric_types">Prometheus metrics</a> via <a class="reference external" href="https://github.com/DataDog/datadogpy">StatsD</a>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Metric name</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>openstack_ratelimit_requests_whitelisted_total</td>
+<td>Amount of whitelisted requests.</td>
+</tr>
+<tr class="row-odd"><td>openstack_ratelimit_requests_blacklisted_total</td>
+<td>Amount of blacklisted requests.</td>
+</tr>
+<tr class="row-even"><td>openstack_ratelimit_requests_ratelimit_total</td>
+<td>Amount of rate limited requests due to a global or local rate limit.</td>
+</tr>
+<tr class="row-odd"><td>openstack_ratelimit_requests_unknown_classification_total</td>
+<td>Amount of Requests with missing <code class="docutils literal notranslate"><span class="pre">scope</span></code> and/or <code class="docutils literal notranslate"><span class="pre">action</span></code> and/or <code class="docutils literal notranslate"><span class="pre">target_type_uri</span></code>. See log for details.</td>
+</tr>
+<tr class="row-even"><td>openstack_ratelimit_errors_total</td>
+<td>Amount of errors while processing a request. See log for details.</td>
+</tr>
+</tbody>
+</table>
+<p>All metrics come with the following labels:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Label name</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>service</td>
+<td>The service type according to CADF specification.</td>
+</tr>
+<tr class="row-odd"><td>service_name</td>
+<td>The name of the OpenStack service.</td>
+</tr>
+<tr class="row-even"><td>action</td>
+<td>The CADF action of the request.</td>
+</tr>
+<tr class="row-odd"><td>scope</td>
+<td>The scope of the request.</td>
+</tr>
+<tr class="row-even"><td>target_type_uri</td>
+<td>The CADF target type URI of the request.</td>
+</tr>
+</tbody>
+</table>
+<p>In addition the <code class="docutils literal notranslate"><span class="pre">openstack_ratelimit_requests_ratelimit_total</span></code> metric comes with a <code class="docutils literal notranslate"><span class="pre">level</span></code> label indicating whether a global or local rate limit was the limit.</p>
+</div>
+<div class="section" id="burst-requests">
+<h2>Burst requests<a class="headerlink" href="#burst-requests" title="Permalink to this headline">¶</a></h2>
+<p>This middleware is capable of handling a burst of requests as described hereinafter.</p>
+</div>
+</div>
+<div class="section" id="with-delay">
+<h1>With delay<a class="headerlink" href="#with-delay" title="Permalink to this headline">¶</a></h1>
+<p>This middleware handles requests that would exceed the configured rate by delaying them until the next possible slot but not longer than <code class="docutils literal notranslate"><span class="pre">max_sleep_time_seconds</span></code>.
+See the <a class="reference external" href="install.md">WSGI section</a> on how to configure this.</p>
+<p>Example:<span class="raw-html-m2r"><br></span>
+Given a <code class="docutils literal notranslate"><span class="pre">rate</span> <span class="pre">limit=1r/m</span></code> and a <code class="docutils literal notranslate"><span class="pre">max_sleep_time_seconds=20</span></code>, the 1st request at t<span class="raw-html-m2r"><sub>1</sub></span>=0 would be processed just fine.
+However, a 2nd request received within the one minute window after the 1st request would exceed the rate limit.
+Assuming it’s received at t<span class="raw-html-m2r"><sub>2</sub></span>=45, the request would not be rejected but suspended for 15 seconds and processed afterwards so that the rate of <code class="docutils literal notranslate"><span class="pre">1r/m</span></code> is not exceeded.</p>
+<p>However, this behaviour might let your application appear slow for a user since request can be suspended for as long as <code class="docutils literal notranslate"><span class="pre">max_sleep_time_seconds</span></code>.
+It can be disabled by setting <code class="docutils literal notranslate"><span class="pre">max_sleep_time_seconds=0</span></code>.
+In which case every requests that exceeds the defined rate limits immediately gets rejected.</p>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rate-limit-middleware</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/rate_limit.html">rate_limit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/tools.html">tools package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html#wsgi-configuration">WSGI configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#burst-requests">Burst requests</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#with-delay">With delay</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="testing.html" title="previous chapter">Testing</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013, OpenStack Foundation.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/user.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

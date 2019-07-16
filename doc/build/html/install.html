@@ -1,0 +1,208 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Installation &#8212; rate-limit-middleware 1.0.7.dev4 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Testing" href="testing.html" />
+    <link rel="prev" title="tools package" href="api/tools.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>Install this middleware via</p>
+<div class="highlight-guess notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">sapcc</span><span class="o">/</span><span class="n">openstack</span><span class="o">-</span><span class="n">rate</span><span class="o">-</span><span class="k">limit</span><span class="o">-</span><span class="n">middleware</span><span class="p">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<div class="section" id="pipeline">
+<h2>Pipeline<a class="headerlink" href="#pipeline" title="Permalink to this headline">¶</a></h2>
+<p>This middleware relies on the request classification provided by the <a class="reference external" href="https://github.com/sapcc/openstack-watcher-middleware">openstack-watcher-middleware</a>
+and must be added after it:</p>
+<div class="highlight-guess notranslate"><div class="highlight"><pre><span></span><span class="n">pipeline</span> <span class="o">=</span> <span class="p">..</span> <span class="n">sapcc</span><span class="o">-</span><span class="n">watcher</span> <span class="n">sapcc</span><span class="o">-</span><span class="n">rate</span><span class="o">-</span><span class="k">limit</span> <span class="p">..</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="wsgi-configuration">
+<h1>WSGI configuration<a class="headerlink" href="#wsgi-configuration" title="Permalink to this headline">¶</a></h1>
+<p>The following parameters are provided via the WSGI configuration:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># The service type according to CADF specification.</span>
+<span class="nt">service_type</span><span class="p">:</span>                   <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+
+<span class="c1"># Path to the configuration file.</span>
+<span class="nt">config_file</span><span class="p">:</span>                    <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+
+<span class="c1"># If this middleware enforces rate limits in multiple replicas of an API,</span>
+<span class="c1"># the clock accuracy of the individual replicas can be configured as follows.</span>
+<span class="c1"># Especially in high-load scenarios, involving a sign. number of concurrent requests, choosing</span>
+<span class="c1"># nanosecond accuracy is advised - given support by OS and clock.</span>
+<span class="nt">clock_accuracy</span><span class="p">:</span>                 <span class="nt">&lt;n&gt;&lt;unit&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1ns)</span>
+
+<span class="c1"># Per default rate limits are applied based on `initiator_project_id`.</span>
+<span class="c1"># However, this can also be se to `initiator_host_address` or `target_project_id`.</span>
+<span class="nt">rate_limit_by</span><span class="p">:</span>                  <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+
+<span class="c1"># The maximal time a request can be suspended in seconds.</span>
+<span class="c1"># Instead of immediately returning a rate limit response, a request can be suspended</span>
+<span class="c1"># until the specified maximum duration to fit the configured rate limit.</span>
+<span class="c1"># This feature can be disabled by setting the max sleep time to 0 seconds.</span>
+<span class="nt">max_sleep_time_seconds</span><span class="p">:</span>         <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20)</span>
+
+<span class="c1"># Log requests that are going to be suspended for log_sleep_time_seconds &lt;= t &lt;= max_sleep_time_seconds.</span>
+<span class="nt">log_sleep_time_seconds</span><span class="p">:</span>         <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10)</span>
+
+<span class="c1"># Emit Prometheus metrics via StatsD.</span>
+<span class="c1"># Host of the StatsD exporter.</span>
+<span class="nt">statsd_host</span><span class="p">:</span>                    <span class="nt">&lt;string&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">127.0.0.1)</span>
+
+<span class="c1"># Port of the StatsD exporter.</span>
+<span class="nt">statsd_port</span><span class="p">:</span>                    <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">9125)</span>
+
+<span class="c1"># Prefix to apply to all metrics provided by this middleware.</span>
+<span class="nt">statsd_prefix</span><span class="p">:</span>                  <span class="nt">&lt;string&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">openstack_ratelimit_middleware)</span>
+
+<span class="c1"># Host for redis backend.</span>
+<span class="nt">backend_host</span><span class="p">:</span>                   <span class="nt">&lt;string&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">127.0.0.1)</span>
+
+<span class="c1"># Port for redis backend.</span>
+<span class="nt">backend_port</span><span class="p">:</span>                   <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">6379)</span>
+
+<span class="c1"># Maximum connections for redis connection pool.</span>
+<span class="nt">backend_max_connections</span><span class="p">:</span>        <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100)</span>
+
+<span class="c1"># Timeout for obtaining a connection to the backend.</span>
+<span class="c1"># Skips rate limit on timeout.</span>
+<span class="nt">backend_timeout_seconds</span><span class="p">:</span>        <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20)</span>
+
+<span class="c1">## Configure Limes as provider for rate limits.</span>
+<span class="c1"># See the limes guide for more details.</span>
+<span class="nt">limes_enabled</span><span class="p">:</span>                  <span class="nt">&lt;bool&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false)</span>
+
+<span class="c1"># URI of the Limes API.</span>
+<span class="c1"># If not provided, the middleware attempts to autodiscover the URI of the Limes API using the</span>
+<span class="c1"># service catalog of the Keystone token.</span>
+<span class="nt">limes_api_uri</span><span class="p">:</span>                  <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+
+<span class="c1"># To avoid querying for rate limits for each requests, rate limits obtained from Limes are cached in Redis.</span>
+<span class="c1"># Specify the interval in which cached rate limits are refreshed in seconds.</span>
+<span class="c1"># Setting 0 here disabled the caching. The middleware will query Limes for rate limits for every requests.</span>
+<span class="c1"># This might have a negative effect on your applications performance.</span>
+<span class="nt">limes_refresh_interval_seconds</span><span class="p">:</span> <span class="nt">&lt;int&gt; (default</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">300)</span>
+
+<span class="c1"># Credentials of the OpenStack service user able to read rate limits from Limes.</span>
+<span class="nt">identity_auth_url</span><span class="p">:</span>                    <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+<span class="nt">limes_username</span><span class="p">:</span>                       <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+<span class="nt">limes_user_domain_name</span><span class="p">:</span>               <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+<span class="nt">limes_password</span><span class="p">:</span>                       <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+<span class="nt">limes_domain_name</span><span class="p">:</span>                    <span class="l l-Scalar l-Scalar-Plain">&lt;string&gt;</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rate-limit-middleware</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/rate_limit.html">rate_limit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/tools.html">tools package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pipeline">Pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#wsgi-configuration">WSGI configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html#with-delay">With delay</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="api/tools.html" title="previous chapter">tools package</a></li>
+      <li>Next: <a href="testing.html" title="next chapter">Testing</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013, OpenStack Foundation.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/install.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
