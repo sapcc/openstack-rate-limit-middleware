@@ -5,25 +5,20 @@
 				"type": "object-store",
 				"area": "storage",
 				"rates": [{
-						"targetTypeURI": "account/container",
-						"actions": [{
-								"name": "update",
-								"limit": "5r/m"
-							},
-							{
-								"name": "delete",
-								"limit": "2r/10m"
-							}
-						]
-					},
-					{
-						"targetTypeURI": "account/container/object",
-						"actions": [{
-							"name": "create",
-							"limit": "10r/s"
-						}]
-					}
-				]
+					"name": "account/container:update",
+					"limit": 5,
+					"window": "1m"
+				},
+				{
+					"name": "account/container:delete",
+					"limit": 2,
+					"window": "10m"
+				},
+				{
+					"name": "account/container/object:create",
+					"limit": 10,
+					"window": "1s"
+				}]
 			}]
 		},
 		{
@@ -32,15 +27,19 @@
 				"type": "object-store",
 				"area": "storage",
 				"rates": [{
-					"targetTypeURI": "account/container/object",
-					"actions": [{
-						"name": "update",
-						"limit": "10r/m"
-					},
-					{
-						"name": "quark",
-						"limit": "1000r/s"
-					}]
+					"name": "account/container/object:update",
+					"limit": 10,
+					"window": "1m"
+				},
+				{
+					"name": "account/container/object:quark",
+					"limit": 1000,
+					"window": "1s"
+				},
+				{
+					"name": "something-else-entirely",
+					"unit": "MiB",
+					"usage_as_bigint": "1024"
 				}]
 			}]
 		}
