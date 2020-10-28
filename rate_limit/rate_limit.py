@@ -455,7 +455,7 @@ class OpenStackRateLimitMiddleware(object):
 
         except Exception as e:
             self.logger.debug(
-                "error while getting scope, action, target type URI from environ".format(str(e))
+                "error while getting scope, action, target type URI from environ: {0}".format(str(e))
             )
 
         finally:
