@@ -14,6 +14,7 @@
 
 
 import keystoneclient.v3 as keystonev3
+import re
 import redis
 import requests
 
@@ -190,11 +191,14 @@ class LimesRateLimitProvider(RateLimitProvider):
         # find the current service by type
         service = self.__find_service_by_type_in_list(self.service_type, project.get('services', []))
         # find the rates by target type URI
-        rate = self.__find_rate_by_target_type_uri_in_list(target_type_uri, service.get('rates', []))
+        rate = self.__find_rate_by_target_type_uri_and_action_in_list(target_type_uri, action, service.get('rates', []))
         # finally find the limit
-        limit = self.__find_limit_by_action_in_list(action, rate.get('actions', []))
-        if limit:
-            return limit
+        if 'limit' in rate and 'window' in rate:
+            # convert Limes' rate limit format into the string format used by this middleware,
+            # e.g. { 'limit': 10, 'window': '1m' } -> '10r/m'
+            # e.g. { 'limit': 2, 'window': '10s' } -> '2r/10s'
+            window = re.sub(r'^1([a-z])', r'\1', rate['window'])
+            return "{0}r/{1}".format(rate['limit'], window)
         return -1
 
     def __authenticate(self, auth_url, username, user_domain_name, password, domain_name):
@@ -287,50 +291,15 @@ class LimesRateLimitProvider(RateLimitProvider):
         }
         return self._get(path, params)
 
-    def __get_rate_limit_from_limes_response(self, scope, action, target_type_uri, domain_id):
-        rate_limit = None
-        try:
-            key = 'limes_{0}'.format(
-                common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
-            )
-
-            # Get rate limit from cache or get fresh from limes and store in cache.
-            rate_limit = self.__redis.get(name=key)
-            if not rate_limit:
-                # Get and parse rate limit from limes response.
-                limes_ratelimit_raw = self.list_ratelimits_for_projects_in_domain(project_id='', domain_id=domain_id)
-                project_list = limes_ratelimit_raw.get('projects', [])
-                service_list = self.__find_service_in_project_list(project_list, scope)
-                rate_list = self.__find_rate_in_service_list(service_list, self.service_type)
-                action_list = self.__find_action_in_rate_list(rate_list, target_type_uri)
-                rl = self.__find_limit_in_action_list(action_list, action)
-                # There might be no rate limit configured or we cannot get it due to an error.
-                if rl:
-                    self.__redis.setex(name=key, value=rl, time=self.__refresh_interval_seconds)
-
-        except Exception as e:
-            self.logger.error(
-                "could not extract limits for action '{0}', target_type_uri: '{1}', scope: '{2}' from limes: {3}"
-                .format(action, target_type_uri, scope, str(e))
-            )
-        finally:
-            return rate_limit
-
     def __find_project_by_id_in_list(self, project_id, project_list):
         return common.find_item_by_key_in_list(project_id, 'id', project_list)
 
     def __find_service_by_type_in_list(self, service_type, service_list):
         return common.find_item_by_key_in_list(service_type, 'type', service_list)
 
-    def __find_rate_by_target_type_uri_in_list(self, target_type_uri, rate_list):
-        return common.find_item_by_key_in_list(target_type_uri, 'targetTypeURI', rate_list)
-
-    def __find_limit_by_action_in_list(self, action_name, action_list):
-        action = common.find_item_by_key_in_list(
-            action_name, 'name', action_list,
-            {'limit': -1}
-        )
-        return action.get('limit')
+    def __find_rate_by_target_type_uri_and_action_in_list(self, target_type_uri, action, rate_list):
+        rate_name = "{0}:{1}".format(target_type_uri, action)
+        return common.find_item_by_key_in_list(rate_name, 'name', rate_list)
 
     def _get(self, path, params={}, headers={}):
         response_json = {}
