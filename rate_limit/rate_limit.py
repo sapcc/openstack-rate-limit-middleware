@@ -251,14 +251,25 @@ class OpenStackRateLimitMiddleware(object):
         username = kwargs.get('username', None)
         # If we have the username: Check whether the user is white- or blacklisted.
         if username:
+            metric_labels.append('initiator_user_name:{}'.format(username))
             if self.is_user_whitelisted(username):
+                self.logger.debug(
+                    "user {0} is whitelisted. skipping rate limit".format(username)
+                )
+                self.metricsClient.increment(common.Constants.metric_requests_whitelisted_total, tags=metric_labels)
                 return None
 
             if self.is_user_blacklisted(username):
+                self.logger.debug(
+                    "user {0} is blacklisted. returning BlacklistResponse".format(username)
+                )
+                self.metricsClient.increment(common.Constants.metric_requests_blacklisted_total, tags=metric_labels)
                 return self.blacklist_response
 
         # The key of the scope in the format $domainName/projectName.
         scope_name_key = kwargs.get('scope_name_key', None)
+        if scope_name_key:
+            metric_labels.append('initiator_project_name:{}'.format(scope_name_key))
 
         # Check whitelist. If scope is whitelisted break here and don't apply any rate limits.
         if self.is_scope_whitelisted(scope) or self.is_scope_whitelisted(scope_name_key):
