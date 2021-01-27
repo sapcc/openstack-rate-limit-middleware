@@ -165,6 +165,76 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             is_equal, msg = response_equal(expected[i], result)
             self.assertTrue(is_equal, "test #{0} failed: {1}".format(i, msg))
 
+    def test_is_ratelimited_swift_local_wildcard_update(self):
+        scope = '123456'
+        action = 'update'
+        target_type_uri = 'account/container/foo_object'
+
+        # The current configuration as per /fixtures/swift.yaml allows 2r/m
+        # for target type URI account/container and action update
+        # which is targeted by wildcard pattern account/*
+        # Thus the first 2 requests should not be rate limited but the 3rd one.
+        expected = [
+            # 1st requests not rate limited.
+            None,
+            # 2nd request also not rate limited.
+            None,
+            # 3rd request should be a rate limit response
+            RateLimitExceededResponse(
+                status='498 Rate Limited',
+                body='Rate Limit Exceeded',
+                headerlist=[
+                    ('X-Retry-After', 58),
+                    ('X-RateLimit-Retry-After', 58),
+                    ('X-RateLimit-Limit', '2r/m'),
+                    ('X-RateLimit-Remaining', 0),
+                ]
+            )
+        ]
+
+        for i in range(len(expected)):
+            result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
+            time.sleep(1)
+            is_equal, msg = response_equal(expected[i], result)
+            self.assertTrue(is_equal, "test #{0} failed: {1}".format(i, msg))
+
+    def test_is_ratelimited_swift_local_after_wildcard_update(self):
+        scope = '123456'
+        action = 'update'
+        target_type_uri = 'account/container/foo_object/something/else'
+
+        # The current configuration as per /fixtures/swift.yaml allows 4r/m
+        # for target type URI account/container/foo_object/something/else
+        # and action update which is goes after wildcard pattern account/*
+        # Thus the first 4 requests should not be rate limited but the 5rd one.
+        expected = [
+            # 1st requests not rate limited.
+            None,
+            # 2nd request also not rate limited.
+            None,
+            # 3rd request also not rate limited.
+            None,
+            # 4th request also not rate limited.
+            None,
+            # 5th request should be a rate limit response
+            RateLimitExceededResponse(
+                status='498 Rate Limited',
+                body='Rate Limit Exceeded',
+                headerlist=[
+                    ('X-Retry-After', 58),
+                    ('X-RateLimit-Retry-After', 58),
+                    ('X-RateLimit-Limit', '2r/m'),
+                    ('X-RateLimit-Remaining', 0),
+                ]
+            )
+        ]
+
+        for i in range(len(expected)):
+            result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
+            time.sleep(1)
+            is_equal, msg = response_equal(expected[i], result)
+            self.assertTrue(is_equal, "test #{0} failed: {1}".format(i, msg))
+
 
 def response_equal(expected, got):
     if isinstance(expected, (RateLimitExceededResponse, BlacklistResponse)) \
