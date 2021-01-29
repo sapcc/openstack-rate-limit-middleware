@@ -6,8 +6,6 @@ before_install:
 
 matrix:
   include:
-    - python: 2.7
-      env: TOXENV=py27
     - python: 3.5
       env: TOXENV=py35
     - python: 3.6
@@ -17,7 +15,7 @@ matrix:
       sudo: true
       env: TOXENV=py37
     - env: TOXENV=pep8
-      python: 2.7
+      python: 3.7
 
 install:
   pip install tox-travis
