@@ -80,6 +80,11 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :return: the global rate limit or -1 (unlimited) if not set
         """
         ttu_ratelimits = self.global_ratelimits.get(target_type_uri, [])
+        if not ttu_ratelimits:
+            ttu_ratelimits = self._get_wildcard_ratelimits(
+                self.global_ratelimits,
+                target_type_uri,
+            )
         for rl in ttu_ratelimits:
             ratelimit = rl.get('limit', None)
             if action == rl.get('action') and ratelimit:
@@ -97,11 +102,50 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :return: the local rate limit or -1 if not set
         """
         ttu_ratelimits = self.local_ratelimits.get(target_type_uri, [])
+        if not ttu_ratelimits:
+            ttu_ratelimits = self._get_wildcard_ratelimits(
+                self.local_ratelimits,
+                target_type_uri,
+            )
         for rl in ttu_ratelimits:
             ratelimit = rl.get('limit', None)
             if action == rl.get('action') and ratelimit:
                 return ratelimit
         return -1
+
+    def _get_wildcard_ratelimits(self, ratelimits, target_type_uri):
+        """
+        Get the target type URI rate limits from wildcard pattern.
+
+        :param target_type_uri: the target type URI of the request
+        :return: target type uri ratelimits if exists
+        """
+
+        ttu_ratelimits = []
+        pattern_list = [
+            lr_key for lr_key in ratelimits
+            if lr_key.endswith('*')
+        ]
+        if pattern_list:
+            matched, ttu_key = self._match(target_type_uri, pattern_list)
+            if matched:
+                ttu_ratelimits = ratelimits[ttu_key]
+        return ttu_ratelimits
+
+    def _match(self, uri, pattern_list):
+        """
+        Check if a URI matches to one of the patterns
+
+        :param uri: URI to check if it matches to one of the patterns
+        :param pattern_list : patterns to match against the URI
+        :return: True if path matches a pattern of the list and
+                 pattern as key for self.local_ratelimits.
+        """
+
+        for pattern in pattern_list:
+            if uri.startswith(pattern[:-1]):
+                return True, pattern
+        return False, None
 
     def read_rate_limits_from_config(self, config_path):
         """

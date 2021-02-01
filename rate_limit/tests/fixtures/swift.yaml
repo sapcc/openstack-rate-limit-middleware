@@ -48,8 +48,14 @@ rates:
       - action: create
         limit: 5r/30m
 
-    account/container/object:
+    account/container/*:
       - action: update
         limit: 2r/m
+      - action: read
+        limit: 2r/m
+
+    account/container/foo_object/something/else:
+      - action: update
+        limit: 4r/m
       - action: read
         limit: 2r/m

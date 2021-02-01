@@ -39,27 +39,34 @@ class TestParseConfig(unittest.TestCase):
         self.assertEqual(
             conf.get('rates').get('default'),
             {
-                "account/container": [
+                'account/container': [
                     {
-                        "action": "update",
-                        "limit": "2r/m"
-                    },
-                    {
-                        "action": "create",
-                        "limit": "5r/30m"
+                        'action': 'update',
+                        'limit': '2r/m'
+                    }, {
+                        'action': 'create',
+                        'limit': '5r/30m'
                     }
                 ],
-                "account/container/object": [
+                'account/container/*': [
                     {
-                        "action": "update",
-                        "limit": "2r/m"
-                    },
+                        'action': 'update',
+                        'limit': '2r/m'
+                    }, {
+                        'action': 'read',
+                        'limit': '2r/m'
+                    }
+                ],
+                'account/container/foo_object/something/else': [
                     {
-                        "action": "read",
-                        "limit": "2r/m"
-                    },
+                        'action': 'update',
+                        'limit': '4r/m'
+                    }, {
+                        'action': 'read',
+                        'limit': '2r/m'
+                    }
                 ]
-            }
+            },
         )
 
     def test_parse_and_convert_to_per_seconds(self):
