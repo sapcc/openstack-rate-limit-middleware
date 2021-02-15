@@ -1,15 +1,16 @@
-Installation
-------------
+## Installation
 
 Install this middleware via
+
 ```
-pip install git+https://github.com/sapcc/openstack-rate-limit-middleware.git 
+pip install git+https://github.com/sapcc/openstack-rate-limit-middleware.git
 ```
 
-# Pipeline 
+# Pipeline
 
 This middleware relies on the request classification provided by the [openstack-watcher-middleware](https://github.com/sapcc/openstack-watcher-middleware)
 and must be added after it:
+
 ```
 pipeline = .. sapcc-watcher sapcc-rate-limit ..
 ```
@@ -17,6 +18,7 @@ pipeline = .. sapcc-watcher sapcc-rate-limit ..
 # WSGI configuration
 
 The following parameters are provided via the WSGI configuration:
+
 ```yaml
 # The service type according to CADF specification.
 service_type:                   <string>
@@ -27,7 +29,7 @@ config_file:                    <string>
 # If this middleware enforces rate limits in multiple replicas of an API,
 # the clock accuracy of the individual replicas can be configured as follows.
 # Especially in high-load scenarios, involving a sign. number of concurrent requests, choosing
-# nanosecond accuracy is advised - given support by OS and clock. 
+# nanosecond accuracy is advised - given support by OS and clock.
 clock_accuracy:                 <n><unit> (default: 1ns)
 
 # Per default rate limits are applied based on `initiator_project_id`.
@@ -36,7 +38,7 @@ rate_limit_by:                  <string>
 
 # The maximal time a request can be suspended in seconds.
 # Instead of immediately returning a rate limit response, a request can be suspended
-# until the specified maximum duration to fit the configured rate limit. 
+# until the specified maximum duration to fit the configured rate limit.
 # This feature can be disabled by setting the max sleep time to 0 seconds.
 max_sleep_time_seconds:         <int> (default: 20)
 
@@ -63,15 +65,16 @@ backend_port:                   <int> (default: 6379)
 backend_max_connections:        <int> (default: 100)
 
 # Timeout for obtaining a connection to the backend.
+# It should be >= 1 second.
 # Skips rate limit on timeout.
-backend_timeout_seconds:        <int> (default: 20)
+backend_timeout_seconds:        <int> (default: 2)
 
 ## Configure Limes as provider for rate limits.
 # See the limes guide for more details.
 limes_enabled:                  <bool> (default: false)
 
 # URI of the Limes API.
-# If not provided, the middleware attempts to autodiscover the URI of the Limes API using the  
+# If not provided, the middleware attempts to autodiscover the URI of the Limes API using the
 # service catalog of the Keystone token.
 limes_api_uri:                  <string>
 

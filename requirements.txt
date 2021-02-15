@@ -2,7 +2,7 @@ datadog>=0.26.0
 eventlet>=0.20.0
 python-keystoneclient
 keystoneauth1>=3.1.0 # Apache-2.0
-redis
+python-redis
 requests>=2.14.2 # Apache-2.0
 six
 WebOb>=1.7.1 # MIT
