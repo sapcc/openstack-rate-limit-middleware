@@ -15,7 +15,7 @@
 
 import keystoneclient.v3 as keystonev3
 import re
-import redis
+import pyredis
 import requests
 
 from keystoneauth1.identity import v3
@@ -168,17 +168,14 @@ class LimesRateLimitProvider(RateLimitProvider):
         # Cache rate limits in redis if refresh_interval_seconds != 0
         self.__refresh_interval_seconds = kwargs.get('refresh_interval_seconds', 300)
 
-        timeout = kwargs.get('redis_timeout', 20)
-        # Use a thread-safe blocking connection pool.
-        conn_pool = redis.BlockingConnectionPool(
+        timeout = kwargs.get('redis_timeout', 2)
+        self.__redis = pyredis.Pool(
             host=kwargs.get('redis_host', '127.0.0.1'),
             port=kwargs.get('redis_port', 6379),
-            max_connections=kwargs.get('max_connections', 100),
-            timeout=kwargs.get('timeout', 20)
-        )
-        self.__redis = redis.StrictRedis(
-            connection_pool=conn_pool, decode_responses=True,
-            socket_timeout=timeout, socket_connect_timeout=timeout,
+            conn_timeout=timeout,
+            read_timeout=timeout,
+            pool_size=kwargs.get('max_connections', 100),
+            encoding='utf-8',
         )
 
         # For testing purposes.

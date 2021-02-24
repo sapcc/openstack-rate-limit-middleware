@@ -14,7 +14,7 @@
 
 import eventlet
 import hashlib
-import redis
+import pyredis
 import time
 
 from distutils.version import StrictVersion
@@ -22,6 +22,7 @@ from distutils.version import StrictVersion
 from . import common
 from . import log
 from .units import Units
+from . import utils
 
 
 class Backend(object):
@@ -79,15 +80,14 @@ class RedisBackend(Backend):
         # Default to nanosecond accuracy.
         self.__clock_accuracy = int(kwargs.get('clock_accuracy', 1e6))
 
-        # Use a thread-safe blocking connection pool.
-        conn_pool = redis.BlockingConnectionPool(
-            host=host, port=port, max_connections=self.__max_connections, timeout=self.__timeout,
+        self.__redis = pyredis.Pool(
+            host=host,
+            port=port,
+            conn_timeout=self.__timeout,
+            read_timeout=self.__timeout,
+            pool_size=self.__max_connections,
+            encoding='utf-8',
         )
-        self.__redis = redis.StrictRedis(
-            connection_pool=conn_pool, decode_responses=True,
-            socket_timeout=self.__timeout, socket_connect_timeout=self.__timeout,
-        )
-
         script_name = "redis_sliding_window.lua"
         script = common.load_lua_script(script_name)
         if not script:
@@ -116,7 +116,7 @@ class RedisBackend(Backend):
             # Invoke get to test redis connection.
             # Will return None or one of the following exceptions.
             self.__redis.get("")
-        except (redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError):
+        except pyredis.PyRedisError:
             return False
         return True
 
@@ -127,7 +127,8 @@ class RedisBackend(Backend):
 
         :return: bool
         """
-        version = self.__redis.info().get('redis_version', None)
+        info_result = self.__redis.execute('INFO')
+        version = utils.parse_info(info_result).get('redis_version', None)
         if not version:
             return False
         return bool(StrictVersion(version) >= StrictVersion('5.0.0'))
@@ -153,6 +154,16 @@ class RedisBackend(Backend):
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
 
+    def __check_rate_limit_script(self, script_sha):
+        script_exist = False
+        try:
+            script_exist = bool(self.__redis.script_exists(script_sha)[0])
+        except pyredis.PyRedisError as e:
+            self.logger.debug(
+                "Error during checking script existence: {0}".format(str(e))
+            )
+        return script_exist
+
     def __rate_limit(self, key, window_seconds, max_calls, max_rate_string):
         # Timestamp with given accuracy as integer.
         now_int = int(time.time() * self.__clock_accuracy)
@@ -163,23 +174,40 @@ class RedisBackend(Backend):
         # Make sure it's an int.
         max_calls_int = int(max_calls)
 
-        # Use the SHA1 digest of the LUA script and use redis internal caching instead of sending it every time.
+        # Check if rate limit script exists in Redis
+        script_exist = self.__check_rate_limit_script(
+            self.__rate_limit_script_sha
+        )
+
+        # Execute command
         try:
-            result = self.__redis.evalsha(
-                self.__rate_limit_script_sha, 7,
-                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds,
-                self.__clock_accuracy,
-            )
-        # If the script is not (yet) present submit to redis and evaluate it.
-        except redis.exceptions.NoScriptError:
-            result = self.__redis.eval(
-                self.__rate_limit_script, 7,
-                key, lookback_time_max, now_int, max_calls_int, window_seconds_int, self.__max_sleep_time_seconds,
-                self.__clock_accuracy
-            )
-        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError, redis.exceptions.ResponseError) as e:
+            if script_exist:
+                result = self.__redis.evalsha(
+                    self.__rate_limit_script_sha,
+                    7,
+                    key,
+                    lookback_time_max,
+                    now_int,
+                    max_calls_int,
+                    window_seconds_int,
+                    self.__max_sleep_time_seconds,
+                    self.__clock_accuracy,
+                )
+            else:
+                result = self.__redis.eval(
+                    self.__rate_limit_script,
+                    7,
+                    key,
+                    lookback_time_max,
+                    now_int,
+                    max_calls_int,
+                    window_seconds_int,
+                    self.__max_sleep_time_seconds,
+                    self.__clock_accuracy,
+                )
+        except pyredis.PyRedisError as e:
             self.logger.debug(
-                "error executing redis script: {0}".format(str(e))
+                "Error executing redis script: {0}".format(str(e))
             )
 
         # Parse result list safely.
