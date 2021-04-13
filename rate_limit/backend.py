@@ -115,7 +115,7 @@ class RedisBackend(Backend):
         try:
             # Invoke get to test redis connection.
             # Will return None or one of the following exceptions.
-            self.__redis.get("")
+            self.__redis.execute('GET', '')
         except pyredis.PyRedisError:
             return False
         return True
