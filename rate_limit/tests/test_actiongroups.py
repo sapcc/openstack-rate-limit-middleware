@@ -47,10 +47,13 @@ groups:
   write:
     - update
     - delete
+    - update/*
+    - delete/os-*
 
   read:
     - read
     - read/list
+    - read/*/list
 """,
                 rl_groups
             )
@@ -77,6 +80,22 @@ groups:
             {
                 'action': 'read/list',
                 'expected': 'read'
+            },
+            {
+                'action': 'update/os-rule',
+                'expected': 'write',
+            },
+            {
+                'action': 'update/os-rule',
+                'expected': 'write',
+            },
+            {
+                'action': 'delete/os-rule',
+                'expected': 'write',
+            },
+            {
+                'action': 'read/rules/list',
+                'expected':'read/rules/list', 
             },
         ]
 

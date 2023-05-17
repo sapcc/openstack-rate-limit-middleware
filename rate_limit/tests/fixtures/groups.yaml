@@ -2,10 +2,13 @@ groups:
   write:
     - update
     - delete
+    - update/*
+    - delete/os-*
 
   read:
     - read
     - read/list
+    - read/*/list
 
 rates:
   global:
