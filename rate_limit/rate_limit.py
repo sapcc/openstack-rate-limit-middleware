@@ -581,6 +581,10 @@ class OpenStackRateLimitMiddleware(object):
         :return: the original action or action as per grouping
         """
         for group in self.rate_limit_groups:
-            if action in self.rate_limit_groups[group]:
-                return group
+            for group_action in self.rate_limit_groups[group]:
+                if action == group_action:
+                    return group
+                # match  group action with * at the end, e.g. update/extend matches to update/*
+                if group_action.endswith('*') and action.startswith(group_action[:-1]):
+                    return group
         return action
