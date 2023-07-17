@@ -160,7 +160,7 @@ def load_config(cfg_file):
     yaml_conf = {}
     try:
         with open(cfg_file, 'r') as f:
-            yaml_conf = yaml.safe_load(f)
+            yaml_conf = yaml.safe_load(f) or {}
     except IOError as e:
         raise errors.ConfigError("Failed to load configuration from file %s: %s" % (cfg_file, str(e)))
     finally:
