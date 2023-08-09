@@ -35,26 +35,13 @@ class Logger(object):
             pass
 
     def info(self, msg):
-        try:
-            self.__logger.info(msg)
-        except Exception:
-            pass
+        self.__logger.info(msg)
 
     def warning(self, msg):
-        try:
-            self.__logger.warning(msg)
-        except Exception:
-            pass
+        self.__logger.warning(msg)
 
     def error(self, msg):
-        try:
-            self.__logger.error(msg)
-        except Exception:
-            pass
+        self.__logger.error(msg)
 
     def debug(self, msg):
-        try:
-            if CONF.debug or os.getenv("DEBUG", False):
-                self.__logger.debug(msg)
-        except Exception:
-            pass
+        self.__logger.debug(msg)
