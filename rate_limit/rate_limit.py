@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import ipaddress
 import os
 
 from datadog.dogstatsd import DogStatsd
@@ -99,6 +100,9 @@ class OpenStackRateLimitMiddleware(object):
         config_whitelist = self.config.get('whitelist', [])
         self.whitelist = default_whitelist + config_whitelist
         self.whitelist_users = self.config.get('whitelist_users', [])
+        
+        # Avoid rate limiting between different openstack services.
+        self._init_whitelist_openstack_services()
 
         self.blacklist = self.config.get('blacklist', [])
         self.blacklist_users = self.config.get('blacklist_users', [])
@@ -213,7 +217,7 @@ class OpenStackRateLimitMiddleware(object):
             return cls(app, **conf)
         return limiter
 
-    def _rate_limit(self, scope, action, target_type_uri, **kwargs):
+    def _rate_limit(self, scope, action, target_type_uri, ip, **kwargs):
         """
         Check the whitelist, blacklist, global and local ratelimits.
 
@@ -228,7 +232,8 @@ class OpenStackRateLimitMiddleware(object):
             'service_name:{0}'.format(self.cadf_service_name),
             'action:{0}'.format(action),
             '{0}:{1}'.format(self.rate_limit_by, scope),
-            'target_type_uri:{0}'.format(target_type_uri)
+            'target_type_uri:{0}'.format(target_type_uri), 
+            'ip: {0}'.format(ip)
         ]
         global_metric_labels = metric_labels + ['level:global']
         local_metric_labels = metric_labels + ['level:local']
@@ -286,7 +291,15 @@ class OpenStackRateLimitMiddleware(object):
             )
             self.metricsClient.increment(common.Constants.metric_requests_blacklisted_total, tags=metric_labels)
             return self.blacklist_response
-
+        
+        # Check if request comes from an OpenStack service. (e.g. Nova calling Neutron)
+        if self.is_openstack_service_whitelisted(ip):
+            self.logger.debug(
+                "ip {0} comes from an OpenStack service. skipping rate limit".format(ip)
+            )
+            self.metricsClient.increment(common.Constants.metric_requests_openstack_service_total, tags=metric_labels)
+            return None
+        
         # Get global rate limits from the provider.
         global_rate_limit = self.ratelimit_provider.get_global_rate_limits(
             action, trimmed_target_type_uri
@@ -379,6 +392,7 @@ class OpenStackRateLimitMiddleware(object):
                 scope=scope, action=action, target_type_uri=target_type_uri,
                 scope_name_key=self._get_scope_name_key_from_environ(environ),
                 username=self._get_username_from_environ(environ),
+                ip=environ.get('initiator_host_address', None)
             )
             if rate_limit_response:
                 rate_limit_response.set_environ(environ)
@@ -437,6 +451,17 @@ class OpenStackRateLimitMiddleware(object):
         """
         for u in self.whitelist_users:
             if str(u).lower() == str(user_to_check).lower():
+                return True
+        return False
+    
+    def is_openstack_service_whitelisted(self, ip_to_check):
+        """
+        Check wether a request comes from an openstack service (e.g. Nova calling Neutron).
+        :param ip_to_check: the ip address of the request
+        :return: bool wether ip is comes from an openstack service
+        """
+        for cidr in self.whitelist_openstack_services:
+            if ipaddress.ip_address(ip_to_check) in cidr:
                 return True
         return False
 
@@ -588,3 +613,16 @@ class OpenStackRateLimitMiddleware(object):
                 if group_action.endswith('*') and action.startswith(group_action[:-1]):
                     return group
         return action
+    
+    def _init_whitelist_openstack_services(self):
+        self.whitelist_openstack_services = []
+        cidrs_to_whitelist = self.config.get('openstack_service_ips', None)
+        if cidrs_to_whitelist:
+            for cidr in cidrs_to_whitelist:
+                try:
+                    self.whitelist_openstack_services.append(ipaddress.ip_network(cidr))
+                except ValueError as e:
+                    self.logger.error(
+                        "error while parsing ip address {0}: {1}".format(cidr, str(e))
+                    )
+        

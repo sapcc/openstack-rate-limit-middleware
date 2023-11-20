@@ -84,6 +84,7 @@ class Constants(object):
     metric_requests_ratelimit_total = 'requests_ratelimit_total'
     metric_requests_whitelisted_total = 'requests_whitelisted_total'
     metric_requests_blacklisted_total = 'requests_blacklisted_total'
+    metric_requests_openstack_service_total = 'requests_openstack_service_total'
 
 
 def key_func(scope, action, target_type_uri):

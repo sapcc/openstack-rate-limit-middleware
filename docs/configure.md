@@ -144,6 +144,29 @@ whitelist_users:
   - <userName>
 ```
 
+## Whitelist OpenStack Services
+This middleware allows to allowlist network communication between OpenStack services. 
+If this is not configured, the middleware might rate limit requests between OpenStack services since some of them (e.g. Nova) implement an on behalf mechanism 
+passing on the user context. If the service starting the request runs into a rate limit, the customer will receive an HTTP Error 5xx. 
+E.g. Customer creating a VM in Nova, Nova calling Neutron for a port creation and runs into a neutron rate limit, does not handle the rate limit and 
+returns an HTTP error code 5xx to the customer instead of the rate limit error code.
+To avoid this behaviour without rewriting the Openstack Services, this feature can be allowed.
+
+Which IP addresses to allowlist? 
+All OpenStack services are running in the same Kubernetes cluster. Withing Kubernetes, POD IPs are assigned based on the nodes podCIDr. 
+Futhermore, packets sent to between services from within the cluster are never source NAT'd. 
+This is why to allowlist a service, you need to add all the podCIDr of the nodes to the configuration. 
+Setting this, all services are whitelisted.
+
+``kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'``
+
+''''yaml
+openstack_service_ips:
+    - <podCIDR>
+    - <cidr>
+    - <cidr>
+''''
+
 ## Customize responses
 
 The blacklist and rate limit responses can be configured as shown below.  
