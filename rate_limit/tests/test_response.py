@@ -15,11 +15,23 @@ SWIFTCONFIGPATH = WORKDIR + '/fixtures/swift.yaml'
 class TestResponse(unittest.TestCase):
     def test_default_ratelimitexceededresponse_json(self):
         ratelimit_response = response.RateLimitExceededResponse()
-
+        ratelimit_response.set_headers(ratelimit=1, remaining=0, retry_after=60)
+        print(ratelimit_response.headers)
         self.assertEqual(
             ratelimit_response.status_code,
             429
         )
+
+        self.assertEqual(
+            sorted(ratelimit_response.headers),
+            sorted(['Content-Type', 'Content-Length',
+                    common.Constants.header_ratelimit_retry_after,
+                    common.Constants.header_ratelimit_terraform_retry_after,
+                    common.Constants.header_ratelimit_reset,
+                    common.Constants.header_ratelimit_limit,
+                    common.Constants.header_ratelimit_remaining])
+        )
+
         self.assertEqual(
             ratelimit_response.content_type,
             common.Constants.content_type_json,

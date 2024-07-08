@@ -78,6 +78,7 @@ class RateLimitExceededResponse(Response):
         :param retry_after: the remaining window before the rate limit resets in seconds
         """
         self.headers[common.Constants.header_ratelimit_retry_after] = str(retry_after)
+        self.headers[common.Constants.header_ratelimit_terraform_retry_after] = str(retry_after)
         self.headers[common.Constants.header_ratelimit_reset] = str(retry_after)
         self.headers[common.Constants.header_ratelimit_limit] = str(ratelimit)
         self.headers[common.Constants.header_ratelimit_remaining] = str(max(0, int(remaining)))
