@@ -69,6 +69,9 @@ class Constants(object):
     # For compatibility with OpenStack Swift. Same as 'header_ratelimit_reset'.
     header_ratelimit_retry_after = 'X-Retry-After'
 
+    # For compatibility with OpenStack Terraform Provider
+    header_ratelimit_terraform_retry_after = 'Retry-After'
+
     # Response content type.
     content_type_json = "application/json"
 
