@@ -2,7 +2,8 @@ import unittest
 import os
 import json
 
-from rate_limit.rate_limit import OpenStackRateLimitMiddleware, provider
+
+from rate_limit.ratelimit import OpenStackRateLimitMiddleware, provider
 from . import fake
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
@@ -12,7 +13,6 @@ SERVICE_TYPE = 'object-store'
 
 
 class TestOpenStackRateLimitMiddlewareWithLimes(unittest.TestCase):
-
     is_setup = False
 
     def setUp(self):

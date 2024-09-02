@@ -13,6 +13,7 @@
 # under the License.
 
 import os
+import time
 
 from datadog.dogstatsd import DogStatsd
 
@@ -143,6 +144,8 @@ class OpenStackRateLimitMiddleware(object):
         if limes_enabled:
             self.__setup_limes_ratelimit_provider()
 
+        self.timestamp_last_config = time.time()
+        self.config_update_interval = common.to_int(self.__conf.get(common.Constants.update_time_interval), 5)
         self.logger.info("OpenStack Rate Limit Middleware ready for requests.")
 
     def _setup_response(self):
@@ -346,6 +349,15 @@ class OpenStackRateLimitMiddleware(object):
 
         try:
             self.metricsClient.open_buffer()
+
+            # check if config must be updated
+            self.logger.debug(f"{time.time()} > {self.config_update_interval} + {self.timestamp_last_config}")
+            if time.time() > (self.config_update_interval + self.timestamp_last_config):
+                self.timestamp_last_config = time.time()
+                self.logger.debug("check rate limit configuration for updates")
+                updated = self.ratelimit_provider.updated_rate_limit_config()
+                if updated:
+                    self.logger.debug("updated rate limit configuration")
 
             # If the service type and/or service name is not configured,
             # attempt to extract watcher classification from environ and set it.

@@ -40,6 +40,7 @@ class Constants(object):
     blacklist_response = 'blacklist_response'
     max_sleep_time_seconds = 'max_sleep_time_seconds'
     log_sleep_time_seconds = 'log_sleep_time_seoncds'
+    update_time_interval = 'update_time_interval'
     unknown = 'unknown'
 
     # Rate limit by ..

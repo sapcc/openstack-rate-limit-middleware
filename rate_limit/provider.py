@@ -12,11 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
+import hashlib
 import keystoneclient.v3 as keystonev3
 import re
 import pyredis
 import requests
+import threading
 
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
@@ -68,6 +69,9 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         super(ConfigurationRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
         )
+        self.config = None
+        self.config_path = None
+        self.lock_conf = threading.Lock()
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -153,11 +157,28 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
         :param config_path: path to the configuration file
         """
-        config = common.load_config(config_path)
-        rates = config.get('rates', {})
+        self.config_path = config_path
+        self.config = common.load_config(self.config_path)
+        rates = self.config.get('rates', {})
         self.global_ratelimits = rates.get('global', {})
         self.local_ratelimits = rates.get('default', {})
 
+    def updated_rate_limit_config(self):
+        """
+        Compare the sha of the rate limit configuration with the current one.
+
+        :param rate_limit_config_sha: sha of the rate limit configuration
+        :return: True if the configuration has changed
+        """
+        with self.lock_conf:
+            new_config = common.load_config(self.config_path)
+            current_sha = hashlib.sha256(str(new_config).encode('utf-8')).hexdigest()
+            new_sha = hashlib.sha256(str(self.config).encode('utf-8')).hexdigest()
+            self.config = new_config
+
+        if new_sha == current_sha:
+            return False
+        return True
 
 class LimesRateLimitProvider(RateLimitProvider):
     """The provider to obtain rate limits from limes."""
