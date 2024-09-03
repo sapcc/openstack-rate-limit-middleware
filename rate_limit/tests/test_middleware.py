@@ -16,7 +16,7 @@ import os
 import time
 import unittest
 
-from rate_limit.rate_limit import OpenStackRateLimitMiddleware
+from rate_limit.ratelimit import OpenStackRateLimitMiddleware
 from rate_limit.response import BlacklistResponse
 from rate_limit.response import RateLimitExceededResponse
 from . import fake
