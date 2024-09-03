@@ -15,7 +15,7 @@
 import unittest
 import os
 
-from rate_limit.rate_limit import OpenStackRateLimitMiddleware
+from rate_limit.ratelimit import OpenStackRateLimitMiddleware
 from . import fake
 
 

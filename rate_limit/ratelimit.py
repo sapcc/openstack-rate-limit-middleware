@@ -16,13 +16,13 @@ import os
 
 from datadog.dogstatsd import DogStatsd
 
-from . import backend as rate_limit_backend
-from . import common
-from . import errors
-from . import provider
-from . import response
-from . import units
-from . import log
+from rate_limit import backend as rate_limit_backend
+from rate_limit import common
+from rate_limit import errors
+from rate_limit import provider
+from rate_limit import response
+from rate_limit import units
+from rate_limit import log
 
 
 class OpenStackRateLimitMiddleware(object):
