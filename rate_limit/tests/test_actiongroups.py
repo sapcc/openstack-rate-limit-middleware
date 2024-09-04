@@ -15,7 +15,7 @@
 import unittest
 import os
 
-from rate_limit.rate_limit import OpenStackRateLimitMiddleware
+from rate_limit.ratelimit import OpenStackRateLimitMiddleware
 from . import fake
 
 
@@ -42,19 +42,18 @@ class TestActionGroups(unittest.TestCase):
         self.assertIsNotNone(
             rl_groups,
             "expected rate limit groups to be '{0}' but got '{1}'".format(
-"""
-groups:
-  write:
-    - update
-    - delete
-    - update/*
-    - delete/os-*
-
-  read:
-    - read
-    - read/list
-    - read/*/list
-""",
+                """
+                groups:
+                  write:
+                    - update
+                    - delete
+                    - update/*
+                    - delete/os-*
+                  read:
+                    - read
+                    - read/list
+                    - read/*/list
+                """,
                 rl_groups
             )
         )
@@ -95,7 +94,7 @@ groups:
             },
             {
                 'action': 'read/rules/list',
-                'expected':'read/rules/list', 
+                'expected': 'read/rules/list',
             },
         ]
 

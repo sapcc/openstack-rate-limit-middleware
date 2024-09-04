@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from .rate_limit import OpenStackRateLimitMiddleware
+from .ratelimit import OpenStackRateLimitMiddleware
 
 
 def main(global_config, **settings):

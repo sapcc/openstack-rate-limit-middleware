@@ -2,7 +2,7 @@ import unittest
 import os
 import json
 
-from rate_limit.rate_limit import OpenStackRateLimitMiddleware, provider
+from rate_limit import OpenStackRateLimitMiddleware, provider
 from . import fake
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
