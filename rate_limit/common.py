@@ -33,9 +33,8 @@ CADF_SERVICE_TYPE_PREFIX_MAP = {
 
 
 class Constants(object):
-    """
-    Common constants used in various places.
-    """
+    """Common constants used in various places."""
+
     ratelimit_response = 'ratelimit_response'
     blacklist_response = 'blacklist_response'
     max_sleep_time_seconds = 'max_sleep_time_seconds'

@@ -11,7 +11,7 @@ def str_if_bytes(value):
 # NOTE: This function was copied from
 # https://github.com/andymccurdy/redis-py/blob/master/redis/client.py#L114
 def parse_info(response):
-    "Parse the result of Redis's INFO command into a Python dict"
+    """Parse the result of Redis's INFO command into a Python dict."""
     info = {}
     response = str_if_bytes(response)
 

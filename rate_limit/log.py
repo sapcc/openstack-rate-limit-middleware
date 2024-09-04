@@ -21,10 +21,8 @@ CONF = cfg.CONF
 
 
 class Logger(object):
-    """
-    Logger that attempts to log and ignores any error.
+    """Logger that attempts to log and ignores any error."""
 
-    """
     def __init__(self, name, product_name='rate_limit'):
         self.__logger = logging.getLogger(name)
         try:

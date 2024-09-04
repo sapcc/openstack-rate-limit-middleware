@@ -120,7 +120,6 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :param target_type_uri: the target type URI of the request
         :return: target type uri ratelimits if exists
         """
-
         ttu_ratelimits = []
         pattern_list = [
             lr_key for lr_key in ratelimits
@@ -134,14 +133,13 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
 
     def _match(self, uri, pattern_list):
         """
-        Check if a URI matches to one of the patterns
+        Check if a URI matches to one of the patterns.
 
         :param uri: URI to check if it matches to one of the patterns
         :param pattern_list : patterns to match against the URI
         :return: True if path matches a pattern of the list and
                  pattern as key for self.local_ratelimits.
         """
-
         for pattern in pattern_list:
             if uri.startswith(pattern[:-1]):
                 return True, pattern

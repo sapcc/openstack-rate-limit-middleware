@@ -13,7 +13,6 @@
 # under the License.
 
 import os
-import time
 import unittest
 
 from unittest.mock import patch, DEFAULT
@@ -155,13 +154,13 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         # The current configuration as per /fixtures/swift.yaml allows 2r/m for target type URI account/container and action update.
         # Thus the first 2 requests should not be rate limited but the 3rd one.
         expected = RateLimitExceededResponse(
-                status='498 Rate Limited',
-                body='Rate Limit Exceeded',
-                headerlist=[('X-Retry-After', 58),
-                            ('X-RateLimit-Retry-After', retry_after),
-                            ('X-RateLimit-Limit', '2r/m'),
-                            ('X-RateLimit-Remaining', remaining)]
-            )
+            status='498 Rate Limited',
+            body='Rate Limit Exceeded',
+            headerlist=[('X-Retry-After', 58),
+                        ('X-RateLimit-Retry-After', retry_after),
+                        ('X-RateLimit-Limit', '2r/m'),
+                        ('X-RateLimit-Remaining', remaining)]
+        )
 
         result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
         is_equal, msg = response_equal(expected, result)
@@ -184,21 +183,21 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         # which is targeted by wildcard pattern account/*
         # Thus the first 2 requests should not be rate limited but the 3rd one.
         expected = RateLimitExceededResponse(
-                status='498 Rate Limited',
-                body='Rate Limit Exceeded',
-                headerlist=[
-                    ('X-Retry-After', retry_after),
-                    ('X-RateLimit-Retry-After', retry_after),
-                    ('X-RateLimit-Limit', '2r/m'),
-                    ('X-RateLimit-Remaining', remaining),
-                ]
-            )
+            status='498 Rate Limited',
+            body='Rate Limit Exceeded',
+            headerlist=[
+                ('X-Retry-After', retry_after),
+                ('X-RateLimit-Retry-After', retry_after),
+                ('X-RateLimit-Limit', '2r/m'),
+                ('X-RateLimit-Remaining', remaining),
+            ]
+        )
 
         result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
         is_equal, msg = response_equal(expected, result)
         self.assertTrue(is_equal, "test failed: {0}".format(msg))
 
-    @patch.multiple('pyredis.Pool', evalsha=DEFAULT,script_exists=DEFAULT)
+    @patch.multiple('pyredis.Pool', evalsha=DEFAULT, script_exists=DEFAULT)
     def test_is_ratelimited_swift_local_after_wildcard_update(self, evalsha, script_exists):
         scope = '123456'
         action = 'update'
@@ -215,18 +214,20 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
         # and action update which is goes after wildcard pattern account/*
         # Thus the first 4 requests should not be rate limited but the 5rd one.
         expected = RateLimitExceededResponse(
-                status='498 Rate Limited',
-                body='Rate Limit Exceeded',
-                headerlist=[
-                    ('X-Retry-After', 58),
-                    ('X-RateLimit-Retry-After', retry_after),
-                    ('X-RateLimit-Limit', '4r/m'),
-                    ('X-RateLimit-Remaining', remaining),
-                ]
+            status='498 Rate Limited',
+            body='Rate Limit Exceeded',
+            headerlist=[
+                ('X-Retry-After', 58),
+                ('X-RateLimit-Retry-After', retry_after),
+                ('X-RateLimit-Limit', '4r/m'),
+                ('X-RateLimit-Remaining', remaining),
+            ]
         )
+
         result = self.app._rate_limit(scope=scope, action=action, target_type_uri=target_type_uri)
         is_equal, msg = response_equal(expected, result)
         self.assertTrue(is_equal, "test failed: {0}".format(msg))
+
 
 def response_equal(expected, got):
     if isinstance(expected, (RateLimitExceededResponse, BlacklistResponse)) \
@@ -240,14 +241,14 @@ def response_equal(expected, got):
             return False, "expected status '{0}' but got '{1}'".format(expected.status, got.status)
 
         if expected.has_body and expected.body != got.body:
-                return False, "expected body '{0}' but got '{1}'".format(expected.body, got.body)
+            return False, "expected body '{0}' but got '{1}'".format(expected.body, got.body)
 
         if not expected.has_body and expected.json_body != got.json_body:
-                return False, "expected json body '{0}' but got '{1}'".format(expected.json_body, got.json_body)
+            return False, "expected json body '{0}' but got '{1}'".format(expected.json_body, got.json_body)
 
         return True, "items are equal"
 
-    if type(expected) != type(got):
+    if type(expected) is not type(got):
         return False, "expected type {0} but got type {1}".format(type(expected), type(got))
 
     # Compare arguments if neither RateLimitResponse nor BlacklistResponse.
