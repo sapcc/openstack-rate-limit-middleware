@@ -61,6 +61,9 @@ backend_host:                   <string> (default: 127.0.0.1)
 # Port for redis backend.
 backend_port:                   <int> (default: 6379)
 
+# Password for redis backend stored in a file
+backend_secret_file:           <string> (default: None)
+
 # Maximum connections for redis connection pool.
 backend_max_connections:        <int> (default: 100)
 
