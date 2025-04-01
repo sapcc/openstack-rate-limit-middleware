@@ -172,6 +172,7 @@ class LimesRateLimitProvider(RateLimitProvider):
         self.__redis = pyredis.Pool(
             host=kwargs.get('redis_host', '127.0.0.1'),
             port=kwargs.get('redis_port', 6379),
+            password=kwargs.get('redis_password'),
             conn_timeout=timeout,
             read_timeout=timeout,
             pool_size=kwargs.get('max_connections', 100),

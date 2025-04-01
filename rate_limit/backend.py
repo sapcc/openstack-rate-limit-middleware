@@ -28,9 +28,10 @@ from . import utils
 class Backend(object):
     """Backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, logger=log.Logger(__name__), **kwargs):
+    def __init__(self, host, port, password, rate_limit_response, logger=log.Logger(__name__), **kwargs):
         self.__host = host
         self.__port = port
+        self.__password = password
         self.__rate_limit_response = rate_limit_response
         self.logger = logger
 
@@ -59,11 +60,12 @@ class Backend(object):
 class RedisBackend(Backend):
     """Stable Redis backend for storing rate limits."""
 
-    def __init__(self, host, port, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds,
+    def __init__(self, host, port, password, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds,
                  logger=log.Logger(__name__), **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
+            password=password,
             rate_limit_response=rate_limit_response,
             max_sleep_time_seconds=max_sleep_time_seconds,
             log_sleep_time_seconds=log_sleep_time_seconds,
@@ -72,6 +74,7 @@ class RedisBackend(Backend):
         )
         self.__host = host
         self.__port = port
+        self.__password = password
         self.__max_sleep_time_seconds = max_sleep_time_seconds
         self.__log_sleep_time_seconds = log_sleep_time_seconds
         self.__rate_limit_response = rate_limit_response
@@ -83,6 +86,7 @@ class RedisBackend(Backend):
         self.__redis = pyredis.Pool(
             host=host,
             port=port,
+            password=password,
             conn_timeout=self.__timeout,
             read_timeout=self.__timeout,
             pool_size=self.__max_connections,

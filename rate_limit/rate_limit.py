@@ -58,6 +58,19 @@ class OpenStackRateLimitMiddleware(object):
         # Backend is used to store count of requests.
         self.backend_host = self.__conf.get('backend_host', '127.0.0.1')
         self.backend_port = common.to_int(self.__conf.get('backend_port'), 6379)
+
+        # Load password from configuration file
+        self.backend_password = None
+        self.backend_secret_file = self.__conf.get('backend_secret_file')
+        if self.backend_secret_file:
+            try:
+                with open(self.backend_secret_file, 'r') as f:
+                    self.backend_password = f.read()
+            except IOError as e:
+                self.logger.error(
+                    f"error loading backend secret from file '{self.backend_secret_file}': {e}"
+                )
+
         self.logger.debug(
             "using backend '{0}' on '{1}:{2}'".format('redis', self.backend_host, self.backend_port)
         )
@@ -116,6 +129,7 @@ class OpenStackRateLimitMiddleware(object):
         self.backend = rate_limit_backend.RedisBackend(
             host=self.backend_host,
             port=self.backend_port,
+            password=self.backend_password,
             rate_limit_response=self.ratelimit_response,
             max_sleep_time_seconds=max_sleep_time_seconds,
             log_sleep_time_seconds=log_sleep_time_seconds,
@@ -191,6 +205,7 @@ class OpenStackRateLimitMiddleware(object):
                 service_type=self.service_type,
                 redis_host=self.backend_host,
                 redis_port=self.backend_port,
+                redis_password=self.backend_password,
                 refresh_interval_seconds=self.__conf.get(common.Constants.limes_refresh_interval_seconds, 300),
                 limes_api_uri=self.__conf.get(common.Constants.limes_api_uri),
                 auth_url=self.__conf.get('identity_auth_url'),
