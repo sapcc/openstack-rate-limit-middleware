@@ -51,3 +51,12 @@ def parse_info(response):
                 # if the line isn't splittable, append it to the "__raw__" key
                 info.setdefault('__raw__', []).append(line)
     return info
+
+
+def monkeypatch_crc_ccitt():
+    # crc < 7 only has the CCITT attr, crc >= 7 has XMODEM
+    # for backward compatbility with this and python-redis we patch the enum
+    import crc
+
+    if not hasattr(crc.Crc16, 'CCITT') and hasattr(crc.Crc16, 'XMODEM'):
+        crc.Crc16.CCITT = crc.Crc16.XMODEM
