@@ -12,6 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from rate_limit.utils import monkeypatch_crc_ccitt
+monkeypatch_crc_ccitt()
+
 import eventlet
 import hashlib
 import pyredis
