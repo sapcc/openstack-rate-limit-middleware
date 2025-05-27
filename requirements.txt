@@ -9,3 +9,4 @@ WebOb>=1.7.1 # MIT
 PyYAML
 oslo.config>=5.2.0
 oslo.log
+crc<7.0.0
