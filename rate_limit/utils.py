@@ -56,7 +56,13 @@ def parse_info(response):
 def monkeypatch_crc_ccitt():
     # crc < 7 only has the CCITT attr, crc >= 7 has XMODEM
     # for backward compatbility with this and python-redis we patch the enum
-    import crc
+    # note that only pyredis >= 0.4.0 uses this. older versions use the crc16 library
+    # and can be ignored
+    try:
+        import crc
+    except ImportError:
+        # no crc --> no monkeypatching
+        return
 
     if not hasattr(crc.Crc16, 'CCITT') and hasattr(crc.Crc16, 'XMODEM'):
         crc.Crc16.CCITT = crc.Crc16.XMODEM
