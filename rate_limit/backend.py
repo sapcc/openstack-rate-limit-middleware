@@ -220,13 +220,14 @@ class RedisBackend(Backend):
         # Parse result list safely.
         remaining = common.listitem_to_int(result, idx=0)
         retry_after_seconds = common.listitem_to_int(result, idx=1)
+        retry = remaining < 0
 
         # Return here if we still have remaining requests.
         if remaining > 0:
             return None
 
         # Suspend the current request if its it has to wait no longer than max_sleep_time_seconds.
-        elif retry_after_seconds < self.__max_sleep_time_seconds:
+        elif retry and retry_after_seconds < self.__max_sleep_time_seconds:
             # Log the current request if it has to be suspended for at least log_sleep_time_seconds.
             if retry_after_seconds >= self.__log_sleep_time_seconds:
                 self.logger.debug(
@@ -234,6 +235,11 @@ class RedisBackend(Backend):
                     .format(key, retry_after_seconds, max_rate_string)
                 )
             eventlet.sleep(retry_after_seconds)
+            return None
+
+        # Tools like opentofu/terraform do not retry but error out when response header returns retry_after 0
+        if retry_after_seconds == 0:
+            self.logger.warning(f"Not rate limiting request as retry_after_seconds is 0. Remaining: {remaining}")
             return None
 
         # If rate limit exceeded and the request cannot be suspended return the rate limit response.

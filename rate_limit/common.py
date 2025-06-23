@@ -199,7 +199,6 @@ def listitem_to_int(listthing, idx, default=0):
     except (IndexError, TypeError):
         return default
 
-
 def load_lua_script(filename, foldername="lua"):
     """
     Load the specified LUA script.
