@@ -35,7 +35,7 @@ class TestUnits(unittest.TestCase):
             },
             {
                 'input': '100r/d',
-                'expected': (100.0, 24*3600.0)
+                'expected': (100.0, 24 * 3600.0)
             },
             {
                 'input': '5r/2m',

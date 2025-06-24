@@ -36,7 +36,7 @@ class FakeMemcache(object):
     def decr(self, key, delta=1, time=0):
         return self.incr(key, delta=-delta, time=time)
 
-    def delete(self,key):
+    def delete(self, key):
         try:
             del self.store[key]
         except KeyError:

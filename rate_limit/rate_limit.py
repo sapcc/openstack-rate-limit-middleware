@@ -160,7 +160,7 @@ class OpenStackRateLimitMiddleware(object):
         self.logger.info("OpenStack Rate Limit Middleware ready for requests.")
 
     def _setup_response(self):
-        """Setup configurable RateLimitExceededResponse and BlacklistResponse."""
+        """Set up configurable RateLimitExceededResponse and BlacklistResponse."""
         # Default responses.
         ratelimit_response = response.RateLimitExceededResponse()
         blacklist_response = response.BlacklistResponse()
@@ -199,7 +199,10 @@ class OpenStackRateLimitMiddleware(object):
             self.blacklist_response = blacklist_response
 
     def __setup_limes_ratelimit_provider(self):
-        """Setup Limes as provider for rate limits. If not successful fallback to configuration file."""
+        """Set up Limes as provider for rate limits.
+
+        If not successful fallback to configuration file.
+        """
         try:
             limes_ratelimit_provider = provider.LimesRateLimitProvider(
                 service_type=self.service_type,
