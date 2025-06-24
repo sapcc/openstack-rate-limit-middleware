@@ -1,6 +1,5 @@
 import json
 import os
-import six
 import unittest
 
 
@@ -35,7 +34,8 @@ class TestResponse(unittest.TestCase):
         self.assertEqual(
             ratelimit_response.content_type,
             common.Constants.content_type_json,
-            "expected response content type to be equal. want '{0}' but got '{1}'".format(common.Constants.content_type_json, ratelimit_response.content_type)
+            "expected response content type to be equal. want '{0}' "
+            "but got '{1}'".format(common.Constants.content_type_json, ratelimit_response.content_type)
         )
 
         actual_body = sorted(json.loads(ratelimit_response.json_body))
@@ -51,7 +51,8 @@ class TestResponse(unittest.TestCase):
 
     def test_custom_ratelimitexceededresponse_html(self):
         conf = common.load_config(SWIFTCONFIGPATH)
-        status, status_code, headers, body, json_body = response.response_parameters_from_config(conf.get(common.Constants.ratelimit_response))
+        status, status_code, headers, body, json_body = (
+            response.response_parameters_from_config(conf.get(common.Constants.ratelimit_response)))
 
         ratelimit_response = response.RateLimitExceededResponse(
             status=status,
@@ -126,7 +127,8 @@ class TestResponse(unittest.TestCase):
 
     def test_custom_blacklistresponse_json(self):
         conf = common.load_config(SWIFTCONFIGPATH)
-        status, status_code, headers, body, json_body = response.response_parameters_from_config(conf.get(common.Constants.blacklist_response))
+        status, status_code, headers, body, json_body = (
+            response.response_parameters_from_config(conf.get(common.Constants.blacklist_response)))
 
         blacklist_response = response.BlacklistResponse(
             status=status,
@@ -156,7 +158,10 @@ class TestResponse(unittest.TestCase):
             .format(common.Constants.content_type_json, blacklist_response.content_type)
         )
 
-        expected_json_body = json.dumps({"error": {"status": "497 Blacklisted", "message": "You have been blacklisted. Please contact and administrator."}}, sort_keys=True)
+        expected_json_body = json.dumps({"error":
+                                        {"status": "497 Blacklisted",
+                                         "message": "You have been blacklisted. "
+                                         "Please contact and administrator."}}, sort_keys=True)
         self.assertEqual(
             blacklist_response.json_body,
             expected_json_body,

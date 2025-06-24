@@ -54,7 +54,7 @@ groups:
     - read
     - read/list
     - read/*/list
-""",
+""",  # noqa
                 rl_groups
             )
         )
@@ -95,7 +95,7 @@ groups:
             },
             {
                 'action': 'read/rules/list',
-                'expected':'read/rules/list', 
+                'expected': 'read/rules/list',
             },
         ]
 

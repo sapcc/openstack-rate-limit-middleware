@@ -8,6 +8,7 @@ from rate_limit.backend import RedisBackend
 from rate_limit.response import RateLimitExceededResponse
 from unittest.mock import MagicMock
 
+
 class TestRateLimitAlgorithm(unittest.TestCase):
     def setUp(self):
         self.configure_connection(max_sleep_time_seconds=600)
@@ -50,7 +51,6 @@ class TestRateLimitAlgorithm(unittest.TestCase):
         self.assertIsNone(resp2, "Expected response not to be limited")
 
     def test_rate_limit_hit_not_suspended(self):
-        #Override connection with new max sleep time
         self.configure_connection(max_sleep_time_seconds=0)
         rand = random.randint(1, 1000)
         target_type = f"port-z{str(rand)}"

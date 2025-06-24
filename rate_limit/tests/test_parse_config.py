@@ -72,16 +72,16 @@ class TestParseConfig(unittest.TestCase):
     def test_parse_and_convert_to_per_seconds(self):
         stimuli = [
             {
-                'in':  '5r/s',
+                'in': '5r/s',
                 'expected': 5
             },
             {
                 'in': '1r/m',
-                'expected': round(1/60.0, 4)
+                'expected': round(1 / 60.0, 4)
             },
             {
                 'in': '10r/d',
-                'expected': round(1/8640.0,4)
+                'expected': round(1 / 8640.0, 4)
             },
             {
                 'in': '0.5r/s',

@@ -155,7 +155,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
                 status='498 Rate Limited',
                 body='Rate Limit Exceeded',
                 headerlist=[('X-Retry-After', 58), ('X-RateLimit-Retry-After', 58),
-                                        ('X-RateLimit-Limit', '2r/m'), ('X-RateLimit-Remaining', 0)]
+                            ('X-RateLimit-Limit', '2r/m'), ('X-RateLimit-Remaining', 0)]
             )
         ]
 
@@ -248,14 +248,14 @@ def response_equal(expected, got):
             return False, "expected status '{0}' but got '{1}'".format(expected.status, got.status)
 
         if expected.has_body and expected.body != got.body:
-                return False, "expected body '{0}' but got '{1}'".format(expected.body, got.body)
+            return False, "expected body '{0}' but got '{1}'".format(expected.body, got.body)
 
         if not expected.has_body and expected.json_body != got.json_body:
-                return False, "expected json body '{0}' but got '{1}'".format(expected.json_body, got.json_body)
+            return False, "expected json body '{0}' but got '{1}'".format(expected.json_body, got.json_body)
 
         return True, "items are equal"
 
-    if type(expected) != type(got):
+    if not isinstance(got, type(expected)):
         return False, "expected type {0} but got type {1}".format(type(expected), type(got))
 
     # Compare arguments if neither RateLimitResponse nor BlacklistResponse.
