@@ -28,7 +28,8 @@ CADF_SERVICE_TYPE_PREFIX_MAP = {
     'dns': 'service/dns',
     'network': 'service/network',
     'compute': 'service/compute',
-    'image': 'service/storage/image'
+    'image': 'service/storage/image',
+    'loadbalancer': 'service/loadbalancer',
 }
 
 
