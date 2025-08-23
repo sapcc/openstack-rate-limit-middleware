@@ -70,6 +70,8 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         super(ConfigurationRateLimitProvider, self).__init__(
             service_type=service_type, logger=logger, kwargs=kwargs
         )
+        # Custom rate limits per scope.
+        self.custom_ratelimits = {}
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -103,7 +105,10 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
         """
-        ttu_ratelimits = self.local_ratelimits.get(target_type_uri, [])
+        _ratelimits = self.custom_ratelimits.get(scope, None)
+        if not _ratelimits:
+            _ratelimits = self.local_ratelimits
+        ttu_ratelimits = _ratelimits.get(target_type_uri, [])
         if not ttu_ratelimits:
             ttu_ratelimits = self._get_wildcard_ratelimits(
                 self.local_ratelimits,
@@ -156,6 +161,9 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         rates = config.get('rates', {})
         self.global_ratelimits = rates.get('global', {})
         self.local_ratelimits = rates.get('default', {})
+        for scope, rl in rates.items():
+            if scope not in ['global', 'default']:
+                self.custom_ratelimits[scope] = rl
 
 
 class LimesRateLimitProvider(RateLimitProvider):
