@@ -82,6 +82,8 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :return: the global rate limit or -1 (unlimited) if not set
         """
         ttu_ratelimits = self.global_ratelimits.get(target_type_uri, [])
+        self.logger.debug(f"Found global rate-limits {ttu_ratelimits} for "
+                          f"action={action}, target_type_uri={target_type_uri}")
         if not ttu_ratelimits:
             ttu_ratelimits = self._get_wildcard_ratelimits(
                 self.global_ratelimits,
@@ -104,6 +106,8 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         :return: the local rate limit or -1 if not set
         """
         ttu_ratelimits = self.local_ratelimits.get(target_type_uri, [])
+        self.logger.debug(f"Found local rate-limits {ttu_ratelimits} for scope={scope}, "
+                          f"action={action}, target_type_uri={target_type_uri}")
         if not ttu_ratelimits:
             ttu_ratelimits = self._get_wildcard_ratelimits(
                 self.local_ratelimits,
