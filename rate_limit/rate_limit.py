@@ -320,7 +320,7 @@ class OpenStackRateLimitMiddleware(object):
             # Check global rate limits.
             # Global rate limits enforce a backend protection by counting all requests independent of their scope.
             rate_limit_response = self.backend.rate_limit(
-                scope=None, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=global_rate_limit
+                scope=None, action=action, target_type_uri=trimmed_target_type_uri, rate_limit=global_rate_limit
             )
             if rate_limit_response:
                 self.metricsClient.increment(
@@ -342,7 +342,7 @@ class OpenStackRateLimitMiddleware(object):
 
             # Check local (for a specific scope) rate limits.
             rate_limit_response = self.backend.rate_limit(
-                scope=scope, action=action, target_type_uri=trimmed_target_type_uri, max_rate_string=local_rate_limit
+                scope=scope, action=action, target_type_uri=trimmed_target_type_uri, rate_limit=local_rate_limit
             )
             if rate_limit_response:
                 self.metricsClient.increment(

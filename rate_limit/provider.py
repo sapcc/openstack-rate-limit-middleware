@@ -26,6 +26,67 @@ from keystoneauth1 import session
 from . import common
 from . import log
 
+from rate_limit.units import Units
+NOT_DEFINED_LIMIT = -1
+
+
+class BaseRateLimit:
+    def __init__(self, action, scope, target_type_uri, limit):
+        self.limit = limit
+        self.action = action
+        self.scope = scope
+        self.target_type_uri = target_type_uri
+
+    def get_time_window_key(self):
+        return 'ratelimit_{0}_{1}_{2}'.format('global' if self.scope is None else self.scope, self.action, self.target_type_uri)
+
+    def parse_sliding_window_rate_limit(self):
+        """
+        Parse sliding window rate limit definition.
+
+        Example:
+        (a) 2r/m  => 2, 60
+        (b) 2r/5m => 2, 300
+
+        :return: the max number of requests and sliding window in seconds
+        """
+        try:
+            value, unit_string = self.limit.split('r/')
+            unit_seconds = Units.parse(unit_string)
+            return float(value), float(unit_seconds)
+        except ValueError:
+            return -1.0, 1.0
+
+    def __eq__(self, other):
+        """Compare two rate limits."""
+        return self.limit == other
+
+    def __str__(self):
+        """
+        Return the string representation of the rate limit.
+        E.g. 2r/m'
+        """
+        return self.limit
+
+
+class URIRateLimit(BaseRateLimit):
+    def __init__(self, limit, target_type_uri, scope, action):
+        super().__init__(action, scope, target_type_uri, limit)
+
+
+class BucketRateLimit(BaseRateLimit):
+    def __init__(self, action, scope, target_type_uri, limit, bucket_name):
+        super().__init__(action, scope, target_type_uri, limit)
+        self.bucket_name = bucket_name
+
+    def get_time_window_key(self):
+        return 'ratelimit_{0}_{1}_{2}'.format('global' if self.scope is None else self.scope, self.action,
+                                              self.bucket_name)
+
+    def __str__(self):
+        """Return the string representation of the rate limit including the bucketname."""
+        return f"{self.bucket_name}: {self.limit}"
+
 
 class RateLimitProvider(object):
     """Interface to obtain rate limits from different sources."""
@@ -37,6 +98,7 @@ class RateLimitProvider(object):
         self.global_ratelimits = {}
         # Local rate limits counted per scope.
         self.local_ratelimits = {}
+        self.buckets_ratelimits = {}
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -48,7 +110,7 @@ class RateLimitProvider(object):
         :param kwargs: optional, additional parameters
         :return: the global rate limit or -1 if not set
         """
-        return -1
+        return NOT_DEFINED_LIMIT
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -60,7 +122,7 @@ class RateLimitProvider(object):
         :param kwargs: optional, additional parameters
         :return: the local rate limit or -1 if not set
         """
-        return -1
+        return NOT_DEFINED_LIMIT
 
 
 class ConfigurationRateLimitProvider(RateLimitProvider):
@@ -71,12 +133,19 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
             service_type=service_type, logger=logger, kwargs=kwargs
         )
 
-    def extract_action_based_limit(self, ttu_ratelimits, action):
+    def extract_action_based_limit(self, action, target_type_uri, scope, ttu_ratelimits):
         for rl in ttu_ratelimits:
-            ratelimit = rl.get('limit', None)
-            if action == rl.get('action') and ratelimit:
-                return ratelimit
-        return -1
+            if action == rl.get('action'):
+                ratelimit = rl.get('limit', None)
+                if ratelimit:
+                    return URIRateLimit(ratelimit, target_type_uri, scope, action)
+
+                # grouping multiple rate limits in a bucket
+                bucket_name = rl.get('bucket')
+                if bucket_name:
+                    ratelimit = self.buckets_ratelimits.get(bucket_name, {}).get("limit", NOT_DEFINED_LIMIT)
+                    return BucketRateLimit(action, scope, target_type_uri, ratelimit, bucket_name)
+        return URIRateLimit(NOT_DEFINED_LIMIT, target_type_uri, scope, action)
 
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
@@ -96,7 +165,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
                 self.global_ratelimits,
                 target_type_uri,
             )
-        return self.extract_action_based_limit(ttu_ratelimits, action)
+        return self.extract_action_based_limit(action, target_type_uri, None, ttu_ratelimits)
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -116,7 +185,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
                 self.local_ratelimits,
                 target_type_uri,
             )
-        return self.extract_action_based_limit(ttu_ratelimits, action)
+        return self.extract_action_based_limit(action, target_type_uri, scope, ttu_ratelimits)
 
     def _get_wildcard_ratelimits(self, ratelimits, target_type_uri):
         """Get the target type URI rate limits from wildcard pattern.
@@ -159,6 +228,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
         rates = config.get('rates', {})
         self.global_ratelimits = rates.get('global', {})
         self.local_ratelimits = rates.get('default', {})
+        self.buckets_ratelimits = rates.get('buckets', {})
 
 
 class LimesRateLimitProvider(RateLimitProvider):
@@ -210,7 +280,7 @@ class LimesRateLimitProvider(RateLimitProvider):
         :return: the global rate limit or -1 if not set
         """
         # TODO: Global rate limits via Limes.
-        return -1
+        return NOT_DEFINED_LIMIT
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -243,7 +313,7 @@ class LimesRateLimitProvider(RateLimitProvider):
             # e.g. { 'limit': 2, 'window': '10s' } -> '2r/10s'
             window = re.sub(r'^1([a-z])', r'\1', rate['window'])
             return "{0}r/{1}".format(rate['limit'], window)
-        return -1
+        return NOT_DEFINED_LIMIT
 
     def __authenticate(self, auth_url, username, user_domain_name, password, domain_name):
         keystone_client = None

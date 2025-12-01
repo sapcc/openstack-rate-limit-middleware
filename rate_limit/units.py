@@ -75,7 +75,7 @@ class Units(Enum):
             return -1.0
 
     @staticmethod
-    def parse_sliding_window_rate_limit(value_string):
+    def parse_sliding_window_rate_limit(rate):
         """
         Parse sliding window rate limit definition.
 
@@ -83,11 +83,11 @@ class Units(Enum):
         (a) 2r/m  => 2, 60
         (b) 2r/5m => 2, 300
 
-        :param value_string: rate limit as string, e.g. '2r/m'
+        :param value: rate limit as string, e.g. '2r/m'
         :return: the max number of requests and sliding window in seconds
         """
         try:
-            value, unit_string = value_string.split('r/')
+            value, unit_string = rate.limit.split('r/')
             unit_seconds = Units.parse(unit_string)
             return float(value), float(unit_seconds)
         except ValueError:

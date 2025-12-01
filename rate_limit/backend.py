@@ -24,8 +24,9 @@ from distutils.version import StrictVersion
 
 from . import common
 from . import log
-from .units import Units
 from . import utils
+
+from rate_limit.provider import BaseRateLimit
 
 
 class Backend(object):
@@ -140,7 +141,7 @@ class RedisBackend(Backend):
             return False
         return bool(StrictVersion(version) >= StrictVersion('5.0.0'))
 
-    def rate_limit(self, scope, action, target_type_uri, max_rate_string):
+    def rate_limit(self, scope, action, target_type_uri, rate_limit: BaseRateLimit):
         """
         Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
         If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
@@ -152,12 +153,12 @@ class RedisBackend(Backend):
         :return: the configured RateLimitResponse or None
         """
         try:
-            key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
-            max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
+            key = rate_limit.get_time_window_key()
+            max_rate, sliding_window_seconds = rate_limit.parse_sliding_window_rate_limit()
             self.logger.debug(
                 "checking rate limit for request '{0} {1}' in scope {2}".format(action, target_type_uri, scope)
             )
-            return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
+            return self.__rate_limit(key, sliding_window_seconds, max_rate, rate_limit)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
 

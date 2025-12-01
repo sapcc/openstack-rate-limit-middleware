@@ -89,19 +89,6 @@ class Constants(object):
     metric_requests_blacklisted_total = 'requests_blacklisted_total'
 
 
-def key_func(scope, action, target_type_uri):
-    """
-    Create the key based on scope, action, target_type_uri: '<scope>_<action>_<target_type_uri>'.
-    If no scope is given (scope=None), the scope is global (global, non-project specific rate limits).
-
-    :param scope: the identifier of the scope (project uid, user uid, ip addr, ..) or 'global'
-    :param action: the cadf action
-    :param target_type_uri: the target type uri of the request
-    :return: the key '<scope>_<action>_<target_type_uri>'
-    """
-    return 'ratelimit_{0}_{1}_{2}'.format('global' if scope is None else scope, action, target_type_uri)
-
-
 def printable_timestamp(timestamp):
     gmtime = time.gmtime(timestamp)
     return str(gmtime.tm_hour) + ':' + str(gmtime.tm_min) + ':' + str(gmtime.tm_sec)

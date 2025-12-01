@@ -5,6 +5,7 @@ import random
 import unittest
 
 from rate_limit.backend import RedisBackend
+from rate_limit.provider import URIRateLimit
 from rate_limit.response import RateLimitExceededResponse
 from unittest.mock import MagicMock
 
@@ -42,9 +43,11 @@ class TestRateLimitAlgorithm(unittest.TestCase):
         rand = random.randint(1, 1000)
         target_type = f"port-y{str(rand)}"
 
+        rl = URIRateLimit(limit='1r/m', action='suspend', scope='local', target_type_uri=target_type)
+
         # First request should not hit the rate limit
-        resp1 = self.backend.rate_limit('local', "suspend", target_type, '1r/m', )
-        resp2 = self.backend.rate_limit('local', "suspend", target_type, '1r/m', )
+        resp1 = self.backend.rate_limit('local', "suspend", target_type, rl)
+        resp2 = self.backend.rate_limit('local', "suspend", target_type, rl)
 
         self.assertEqual(True, eventlet.sleep.called)
         self.assertIsNone(resp1, "Expected response not to be limited")
@@ -55,9 +58,11 @@ class TestRateLimitAlgorithm(unittest.TestCase):
         rand = random.randint(1, 1000)
         target_type = f"port-z{str(rand)}"
 
+        rl = URIRateLimit(limit='1r/m', action='suspend', scope='local', target_type_uri=target_type)
+
         # First request should not hit the rate limit
-        resp1 = self.backend.rate_limit('local', "suspend", target_type, '1r/m', )
-        resp2 = self.backend.rate_limit('local', "suspend", target_type, '1r/m', )
+        resp1 = self.backend.rate_limit('local', "suspend", target_type, rl)
+        resp2 = self.backend.rate_limit('local', "suspend", target_type, rl)
 
         if not resp2:
             self.assertIsNotNone(resp2, "Expected response to be rate limited")

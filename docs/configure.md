@@ -74,6 +74,34 @@ rates:
         limit: 3r/m
 ```
 
+## Bucket-Based Rate Limits
+Rate limits are calculated based on the number of calls made within a defined time window. Previously, each tuple URI and action (READ, UPDATE, etc.) had its own independent 
+rate limit. With the introduction of buckets, this behavior changes.
+All endpoints that share the same bucket name will now also share the same rate limit. 
+Once the bucket’s limit is reached, all endpoints assigned to that bucket will be rate-limited.
+
+This function extends the `wildcard`-based ratelimiting relying on a common pattern to group limits.
+
+```
+rates:
+  global:
+  local:
+    router/router/add_extraroute:
+      - bucket: <bucketName>
+        action: update
+    router/router/remove_extraroute:
+      - bucket: <bucketName>
+        action: update
+      - bucket: <bucketName>
+        action: read
+
+buckets:
+    <bucketName>:
+      limit: 5r/m
+```
+Independent of the URI and the action, calls get grouped to the same bucket in the backend. 
+
+Update metric based on the bucket name
 ## Example configuration
 
 Rate limits can be specified via a configuration file and/or via [Limes](https://github.com/sapcc/limes).  

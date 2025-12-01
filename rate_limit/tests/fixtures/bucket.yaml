@@ -1,0 +1,30 @@
+rates:
+  # global rate limits counted across all projects
+  global:
+    ports:
+      - bucket: gobal_bucket
+        action: read
+
+    bucket/definition/missing:
+      - bucket: not_existing
+        action: write
+
+  # default local rate limits counted per project
+  default:
+    routers/router/add_extraroutes:
+      - bucket: extra_routes_bucket
+        action: update
+
+    routers/router/remove_extraroutes:
+      - bucket: extra_routes_bucket
+        action: update
+
+    bucket/definition/missing:
+      - bucket: not_existing
+        action: update
+  # Group calls in the same rate limit bucket
+  buckets:
+    extra_routes_bucket:
+      limit: 2r/m
+    gobal_bucket:
+      limit: 10r/m

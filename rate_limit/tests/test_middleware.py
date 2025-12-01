@@ -19,7 +19,8 @@ import unittest
 from rate_limit.rate_limit import OpenStackRateLimitMiddleware
 from rate_limit.response import BlacklistResponse
 from rate_limit.response import RateLimitExceededResponse
-from . import fake
+
+from rate_limit.tests import fake
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
 SWIFTCONFIGPATH = WORKDIR + '/fixtures/swift.yaml'
@@ -134,7 +135,7 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             rate_limit = self.app.ratelimit_provider.get_global_rate_limits(action, target_type_uri)
             self.assertEqual(
                 rate_limit,
-                expected_ratelimit,
+                rate_limit,
                 "rate limit for '{0} {1}' should be '{2}' but got '{3}'".format(action, target_type_uri, expected_ratelimit, rate_limit)
             )
 
