@@ -71,6 +71,13 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
             service_type=service_type, logger=logger, kwargs=kwargs
         )
 
+    def extract_action_based_limit(self, ttu_ratelimits, action):
+        for rl in ttu_ratelimits:
+            ratelimit = rl.get('limit', None)
+            if action == rl.get('action') and ratelimit:
+                return ratelimit
+        return -1
+
     def get_global_rate_limits(self, action, target_type_uri, **kwargs):
         """
         Get the global rate limit per action and target type URI.
@@ -89,11 +96,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
                 self.global_ratelimits,
                 target_type_uri,
             )
-        for rl in ttu_ratelimits:
-            ratelimit = rl.get('limit', None)
-            if action == rl.get('action') and ratelimit:
-                return ratelimit
-        return -1
+        return self.extract_action_based_limit(ttu_ratelimits, action)
 
     def get_local_rate_limits(self, scope, action, target_type_uri, **kwargs):
         """
@@ -113,11 +116,7 @@ class ConfigurationRateLimitProvider(RateLimitProvider):
                 self.local_ratelimits,
                 target_type_uri,
             )
-        for rl in ttu_ratelimits:
-            ratelimit = rl.get('limit', None)
-            if action == rl.get('action') and ratelimit:
-                return ratelimit
-        return -1
+        return self.extract_action_based_limit(ttu_ratelimits, action)
 
     def _get_wildcard_ratelimits(self, ratelimits, target_type_uri):
         """Get the target type URI rate limits from wildcard pattern.
