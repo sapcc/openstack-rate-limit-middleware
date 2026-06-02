@@ -17,6 +17,7 @@ monkeypatch_crc_ccitt()
 
 import eventlet
 import hashlib
+import math
 import pyredis
 import time
 
@@ -105,6 +106,17 @@ class RedisBackend(Backend):
         self.__rate_limit_script = script
         self.__rate_limit_script_sha = hashlib.sha1(script.encode('utf-8')).hexdigest()
 
+        # Load token bucket script.
+        token_bucket_script_name = "redis_token_bucket.lua"
+        token_bucket_script = common.load_lua_script(token_bucket_script_name)
+        if not token_bucket_script:
+            self.logger.error(
+                "error loading rate limit script: '{0}'".format(token_bucket_script_name)
+            )
+            return
+        self.__token_bucket_script = token_bucket_script
+        self.__token_bucket_script_sha = hashlib.sha1(token_bucket_script.encode('utf-8')).hexdigest()
+
     def is_available(self):
         """Check whether the redis is available and supported."""
         if not self.__is_redis_available():
@@ -145,6 +157,9 @@ class RedisBackend(Backend):
         Handle the rate limit for the given scope, action, target_type_uri and max_rate_string.
         If scope is not given (scope=None) the global (non-project specific) rate limit is checked.
 
+        Routes to token bucket algorithm if max_rate_string contains ',burst=N',
+        otherwise uses the sliding window algorithm.
+
         :param scope: the scope (project uuid, host ip, etc., ..) or None for global rate limits
         :param action: the CADF action
         :param target_type_uri: the CADF target type URI
@@ -153,10 +168,18 @@ class RedisBackend(Backend):
         """
         try:
             key = common.key_func(scope=scope, action=action, target_type_uri=target_type_uri)
-            max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
             self.logger.debug(
                 "checking rate limit for request '{0} {1}' in scope {2}".format(action, target_type_uri, scope)
             )
+
+            # Route to token bucket if burst= is present.
+            bucket_params = Units.parse_token_bucket_rate_limit(max_rate_string)
+            if bucket_params:
+                refill_rate, capacity = bucket_params
+                return self.__rate_limit_token_bucket(key, refill_rate, capacity, max_rate_string)
+
+            # Otherwise use sliding window.
+            max_rate, sliding_window_seconds = Units.parse_sliding_window_rate_limit(max_rate_string)
             return self.__rate_limit(key, sliding_window_seconds, max_rate, max_rate_string)
         except Exception as e:
             self.logger.debug("failed to rate limit: {0}".format(str(e)))
@@ -244,6 +267,79 @@ class RedisBackend(Backend):
 
         # If rate limit exceeded and the request cannot be suspended return the rate limit response.
         # Set headers for rate limit response.
+        self.__rate_limit_response.set_headers(
+            ratelimit=max_rate_string,
+            remaining=remaining,
+            retry_after=retry_after_seconds
+        )
+        return self.__rate_limit_response
+
+    def __rate_limit_token_bucket(self, key, refill_rate, capacity, max_rate_string):
+        """
+        Rate limit using the token bucket algorithm.
+
+        :param key: the rate limit key
+        :param refill_rate: tokens per second (float)
+        :param capacity: bucket size / max burst (int)
+        :param max_rate_string: the original rate limit string for response headers
+        :return: the configured RateLimitResponse or None
+        """
+        # Timestamp with given accuracy as integer.
+        now_int = int(time.time() * self.__clock_accuracy)
+        # Pre-divide refill rate: tokens per clock_accuracy unit (so Lua just does elapsed * rate).
+        refill_rate_per_clock_unit = refill_rate / self.__clock_accuracy
+        # TTL: time for a fully drained bucket to refill, doubled for safety.
+        ttl_seconds = int(math.ceil(capacity / refill_rate) * 2)
+
+        # Check if token bucket script exists in Redis.
+        script_exist = self.__check_rate_limit_script(self.__token_bucket_script_sha)
+
+        # Execute command.
+        try:
+            args = (
+                7,
+                key,
+                now_int,
+                int(capacity),
+                refill_rate_per_clock_unit,
+                self.__max_sleep_time_seconds,
+                self.__clock_accuracy,
+                ttl_seconds,
+            )
+            if script_exist:
+                result = self.__redis.evalsha(self.__token_bucket_script_sha, *args)
+            else:
+                result = self.__redis.eval(self.__token_bucket_script, *args)
+        except pyredis.PyRedisError as e:
+            self.logger.debug(
+                "Error executing redis token bucket script: {0}".format(str(e))
+            )
+            return None
+
+        # Parse result list safely.
+        remaining = common.listitem_to_int(result, idx=0)
+        retry_after_seconds = common.listitem_to_int(result, idx=1)
+
+        # Token available — pass immediately.
+        if retry_after_seconds == -1:
+            return None
+
+        # Suspend the current request if it has to wait no longer than max_sleep_time_seconds.
+        if retry_after_seconds > 0 and retry_after_seconds < self.__max_sleep_time_seconds:
+            if retry_after_seconds >= self.__log_sleep_time_seconds:
+                self.logger.debug(
+                    "suspending request '{0}' for '{1}' seconds to fit rate limit '{2}'"
+                    .format(key, retry_after_seconds, max_rate_string)
+                )
+            eventlet.sleep(retry_after_seconds)
+            return None
+
+        # Tools like opentofu/terraform do not retry but error out when response header returns retry_after 0
+        if retry_after_seconds == 0:
+            self.logger.warning(f"Not rate limiting request as retry_after_seconds is 0. Remaining: {remaining}")
+            return None
+
+        # Rate limit exceeded and sleep would be too long — return 429.
         self.__rate_limit_response.set_headers(
             ratelimit=max_rate_string,
             remaining=remaining,

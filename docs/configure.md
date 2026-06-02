@@ -114,6 +114,92 @@ rates:
         limit: 2r/m
 ```
 
+## Token Bucket Rate Limiting (Burst Control)
+
+In addition to the sliding window algorithm, this middleware supports an optional **token bucket** algorithm
+for controlling request bursts. The token bucket is useful when you need to limit the number of requests
+that can be issued simultaneously, while preserving the same sustained rate over time.
+
+### When to use
+
+- You need to limit concurrent requests to prevent database lock contention or connection pool exhaustion
+- Bursty clients (e.g., Kubernetes CSI drivers) send many requests in parallel at the start of a window
+- You want to allow short bursts but enforce a sustained rate
+
+### Syntax
+
+Add `,burst=N` to an existing rate limit string:
+
+```yaml
+rates:
+  default:
+    <target_type_uri>:
+      - action: <action>
+        limit: <n>r/<m><t>,burst=<N>
+```
+
+Where:
+- `<n>r/<m><t>` is the sustained rate (same syntax as sliding window)
+- `burst=<N>` is the maximum number of requests allowed simultaneously (bucket capacity)
+
+### How it works
+
+- **Bucket capacity** = N (max requests allowed in a burst)
+- **Refill rate** = derived from the base rate (e.g., `100r/m` = 1.667 tokens/second)
+- When a request arrives:
+  - If tokens are available, one is consumed and the request passes immediately
+  - If no tokens are available but the wait is short, the request is suspended (delayed) then allowed
+  - If the wait would exceed `max_sleep_time_seconds`, a 429 response is returned
+
+### Example: Cinder volume creates
+
+```yaml
+rates:
+  default:
+    volumes/volume:
+      - action: write
+        limit: 100r/m,burst=3
+```
+
+Behaviour with 4 simultaneous requests for the same project:
+
+| Request | Tokens remaining | Result |
+|---------|-----------------|--------|
+| 1st | 2 | Passes immediately |
+| 2nd | 1 | Passes immediately |
+| 3rd | 0 | Passes immediately (last token) |
+| 4th | -1 | Sleeps ~600ms for next refill, then passes |
+
+Sustained rate is preserved at 100 requests/minute. Only the burst concurrency is limited to 3.
+
+### Comparison with sliding window
+
+| Feature | Sliding window (`100r/m`) | Token bucket (`100r/m,burst=3`) |
+|---------|--------------------------|--------------------------------|
+| Sustained rate | 100 requests per minute | 100 requests per minute |
+| Burst handling | All 100 can fire at once | Max 3 at once |
+| Use case | General rate limiting | Concurrency/burst control |
+| Redis data structure | Sorted Set | Hash |
+
+### Mixed configurations
+
+Sliding window and token bucket configs can coexist in the same configuration file.
+Endpoints without `,burst=` continue using the sliding window algorithm unchanged.
+
+```yaml
+rates:
+  default:
+    # Sliding window (unchanged behavior)
+    account/container:
+      - action: read
+        limit: 1000r/m
+
+    # Token bucket (burst-controlled)
+    volumes/volume:
+      - action: write
+        limit: 100r/m,burst=3
+```
+
 ## Black- & Whitelist
 
 This middleware allows configuring a black- and whitelist for certain scopes and keys.  

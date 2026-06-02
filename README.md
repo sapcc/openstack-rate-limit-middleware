@@ -23,6 +23,46 @@ uses `Redis >= 5.0.0` as a backend to store rate limits.
 
 It's better to use `Redis` without persistent storage.
 
+## Rate Limiting Algorithms
+
+This middleware supports two algorithms:
+
+### Sliding Window (default)
+
+The sliding window counts requests within a rolling time window. If the count exceeds the configured
+maximum, subsequent requests are either delayed or rejected with a 429 response.
+
+```yaml
+rates:
+  default:
+    account/container:
+      - action: update
+        limit: 100r/m
+```
+
+### Token Bucket (burst control)
+
+The token bucket algorithm limits request **bursts** while preserving the same sustained rate.
+Use this when bursty clients cause backend contention (e.g., database lock storms, connection
+pool exhaustion).
+
+Enable by adding `,burst=N` to the rate limit string:
+
+```yaml
+rates:
+  default:
+    volumes/volume:
+      - action: write
+        limit: 100r/m,burst=3
+```
+
+This allows at most 3 requests simultaneously while maintaining a sustained rate of 100 requests
+per minute (1.667 tokens/second refill). Requests beyond the burst capacity are delayed until a
+token becomes available, or rejected with 429 if the delay would exceed `max_sleep_time_seconds`.
+
+Both algorithms can be used together in the same configuration. Endpoints without `,burst=`
+use the sliding window; endpoints with `,burst=N` use the token bucket.
+
 ## Documentation
 
 - [Installation & WSGI configuration](docs/install.md)
