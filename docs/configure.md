@@ -123,6 +123,55 @@ If a scope is blacklisted, the middleware immediately returns the configured bla
 Requests in a whitelisted scope are not rate limited.  
 Also see the [examples](../etc/).
 
+## Bypass for service-to-service requests
+
+OpenStack services routinely call each other on behalf of a user (for example
+Nova calling Cinder to attach a volume). These service-to-service requests
+carry a *service token* in addition to the user token. The service token is
+validated by `keystonemiddleware` upstream of this middleware (using its
+own configurable token cache, so steady-state validation is in-process and
+free); the validation result is injected into the WSGI environ as the
+`X-Service-Token` and `X-Service-Identity-Status` headers.
+
+When `bypass_service_token` is enabled, this middleware skips rate limiting
+for any request whose `X-Service-Identity-Status` header equals `Confirmed`.
+The bypassed request is counted under the existing `requests_whitelisted_total`
+StatsD metric with an additional `bypass_reason:service_token` tag, so
+operators can observe service-to-service traffic separately in dashboards.
+
+Defaults to `false` (off) to preserve backward-compatible behavior; enable
+it per service in `paste.ini`:
+
+```ini
+[filter:rate-limit]
+paste.filter_factory = rate_limit:OpenStackRateLimitMiddleware.factory
+service_type = volumev3
+backend_host = redis-cinder
+backend_port = 6379
+config_file = /etc/cinder/rate_limit.yaml
+
+# Skip rate limiting for service-to-service requests carrying a valid
+# (Keystone-confirmed) service token.
+bypass_service_token = true
+```
+
+> **Important:** For this bypass to be safe you **must** also set
+> `service_token_roles_required = True` in the `[keystone_authtoken]` section
+> of the service's config. Without it, `keystonemiddleware` marks *any* second
+> valid token as `X-Service-Identity-Status: Confirmed` — it only verifies that
+> the token is valid, not that it belongs to an account with a service role.
+> A regular user could then supply two valid user tokens and circumvent rate
+> limiting. With `service_token_roles_required = True`, keystonemiddleware
+> additionally requires the service token to carry one of the roles listed in
+> `service_token_roles`, so only genuine service-to-service traffic is
+> confirmed. See the
+> [keystonemiddleware documentation](https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html#service-tokens).
+
+The header contract matches
+[`sap-cloud-infrastructure/internal-only-middleware`](https://github.wdf.sap.corp/sap-cloud-infrastructure/internal-only-middleware);
+this middleware never validates the token itself, it only inspects the result
+already produced by `keystonemiddleware`.
+
 ```yaml
 # List of blacklisted scopes (project UUID, host address), keys (domainName/projectName).
 blacklist:
