@@ -11,6 +11,11 @@ The OpenStack Rate Limit Middleware enforces rate limits and enables traffic sha
 It also supports enforcing global and scoped rate limits.
 More details can be found in the documentation.
 
+Service-to-service requests (those that carry a valid Keystone-confirmed
+service token, as injected by `keystonemiddleware`) can optionally be
+bypassed via the `bypass_service_token` option — see
+[Bypass for service-to-service requests](docs/configure.md#bypass-for-service-to-service-requests).
+
 ## Prerequisites
 
 This middleware requires the classification for OpenStack requests.  

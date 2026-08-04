@@ -25,6 +25,16 @@ from . import units
 from . import log
 
 
+# WSGI-normalized header names matching the constants used by
+# `keystonemiddleware` and `sap-cloud-infrastructure/internal-only-middleware`.
+# These headers are injected into the WSGI environ by `keystonemiddleware`
+# after it validates the service token (using its own cache; we do not perform
+# any validation here, only consume the result).
+_SERVICE_TOKEN_HEADER = 'HTTP_X_SERVICE_TOKEN'
+_SERVICE_STATUS_HEADER = 'HTTP_X_SERVICE_IDENTITY_STATUS'
+_SERVICE_STATUS_CONFIRMED = 'Confirmed'
+
+
 class OpenStackRateLimitMiddleware(object):
     """
     OpenStack Rate Limit Middleware enforces configurable rate limits.
@@ -122,6 +132,14 @@ class OpenStackRateLimitMiddleware(object):
         # Configurable scope in which a rate limit is applied. Defaults to initiator project id.
         # Rate limits are applied based on the tuple of (rate_limit_by, action, target_type_uri).
         self.rate_limit_by = self.__conf.get('rate_limit_by', common.Constants.initiator_project_id)
+
+        # Bypass rate limiting for service-to-service requests that carry a
+        # valid service token. See docs/configure.md and
+        # `_has_valid_service_token` for how the token is validated upstream.
+        # Defaults to disabled to preserve backward-compatible behavior.
+        self.bypass_service_token = common.to_bool(
+            self.__conf.get('bypass_service_token', False), default=False
+        )
 
         # Accuracy of the request timestamps used. Defaults to nanosecond accuracy.
         clock_accuracy = int(1 / units.Units.parse(self.__conf.get('clock_accuracy', '1ns')))
@@ -231,13 +249,16 @@ class OpenStackRateLimitMiddleware(object):
             return cls(app, **conf)
         return limiter
 
-    def _rate_limit(self, scope, action, target_type_uri, **kwargs):
+    def _rate_limit(self, scope, action, target_type_uri, environ=None, **kwargs):
         """
         Check the whitelist, blacklist, global and local ratelimits.
 
         :param scope: the scope of the request
         :param action: the action of the request
         :param target_type_uri: the target type URI of the response
+        :param environ: the WSGI environ dict (required for the
+            service-token bypass path; may be None for callers that predate
+            this parameter, in which case the bypass is skipped)
         :return: None or BlacklistResponse or RateLimitResponse
         """
         # Labels used for all metrics.
@@ -250,6 +271,22 @@ class OpenStackRateLimitMiddleware(object):
         ]
         global_metric_labels = metric_labels + ['level:global']
         local_metric_labels = metric_labels + ['level:local']
+
+        # Bypass rate limiting for service-to-service requests carrying a
+        # valid service token. We treat this as a whitelist (the request
+        # passes through untouched) and emit the existing whitelisted metric
+        # so operators see service-token traffic in the same dashboard panel.
+        if self.bypass_service_token and self._has_valid_service_token(environ):
+            self.logger.debug(
+                "request carries a valid service token. skipping rate limit "
+                "(scope={0}, action={1}, target_type_uri={2})".format(
+                    scope, action, target_type_uri)
+            )
+            self.metricsClient.increment(
+                common.Constants.metric_requests_whitelisted_total,
+                tags=metric_labels + ['bypass_reason:service_token']
+            )
+            return None
 
         # Check whether a set of CADF actions are accounted together.
         new_action = self.get_action_from_rate_limit_groups(action)
@@ -397,6 +434,7 @@ class OpenStackRateLimitMiddleware(object):
                 scope=scope, action=action, target_type_uri=target_type_uri,
                 scope_name_key=self._get_scope_name_key_from_environ(environ),
                 username=self._get_username_from_environ(environ),
+                environ=environ,
             )
             if rate_limit_response:
                 rate_limit_response.set_environ(environ)
@@ -409,6 +447,25 @@ class OpenStackRateLimitMiddleware(object):
         finally:
             self.metricsClient.close_buffer()
             return resp(environ, start_response)
+
+    def _has_valid_service_token(self, environ):
+        """
+        Return True iff the request carries a valid (Keystone-confirmed) service token.
+
+        The two headers are populated by `keystonemiddleware` after it
+        validates the service token against Keystone (using its in-process /
+        memcached token cache). The contract matches what
+        `sap-cloud-infrastructure/internal-only-middleware` checks; we only
+        consume the result, we do not perform any token validation ourselves.
+
+        :param environ: the WSGI environ dict
+        :return: bool — True only when X-Service-Token is set AND
+                 X-Service-Identity-Status equals "Confirmed".
+        """
+        if not environ:
+            return False
+        return bool(environ.get(_SERVICE_TOKEN_HEADER)) and \
+            environ.get(_SERVICE_STATUS_HEADER) == _SERVICE_STATUS_CONFIRMED
 
     def is_scope_blacklisted(self, key_to_check):
         """

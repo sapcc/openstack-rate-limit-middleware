@@ -185,6 +185,34 @@ def to_int(raw_value, default=0):
         return default
 
 
+def to_bool(raw_value, default=False):
+    """
+    Safely parse a raw value as a boolean.
+
+    Accepts native Python booleans as-is. For string values (e.g. from paste.ini
+    which loads everything as strings), the strings "true"/"1"/"yes"/"on" are
+    truthy and "false"/"0"/"no"/"off"/"" are falsy (case-insensitive).
+    Any other value falls back to the provided default.
+
+    :param raw_value: the raw value
+    :param default: the fallback value if conversion fails
+    :return: the value as bool
+    """
+    if isinstance(raw_value, bool):
+        return raw_value
+    if raw_value is None:
+        return default
+    try:
+        normalized = str(raw_value).strip().lower()
+    except (ValueError, TypeError):
+        return default
+    if normalized in ('true', '1', 'yes', 'on'):
+        return True
+    if normalized in ('false', '0', 'no', 'off', ''):
+        return False
+    return default
+
+
 def listitem_to_int(listthing, idx, default=0):
     """
     Safely get an item by index from a list.
