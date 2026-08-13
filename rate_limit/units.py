@@ -94,6 +94,31 @@ class Units(Enum):
             return -1.0, 1.0
 
     @staticmethod
+    def parse_token_bucket_rate_limit(value_string):
+        """
+        Parse token bucket rate limit definition.
+
+        Example:
+          '100r/m,burst=3' => (1.6667, 3)
+          '100r/m'         => None (no burst suffix, use sliding window)
+
+        :param value_string: rate limit as string, e.g. '100r/m,burst=3'
+        :return: tuple of (refill_rate_per_second, capacity) if burst syntax found, else None
+        """
+        if ',burst=' not in value_string:
+            return None
+        try:
+            rate_part, burst_part = value_string.split(',burst=', 1)
+            capacity = int(burst_part)
+            max_calls, window_seconds = Units.parse_sliding_window_rate_limit(rate_part)
+            if max_calls <= 0 or window_seconds <= 0:
+                return None
+            refill_rate = max_calls / window_seconds  # tokens per second
+            return refill_rate, capacity
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    @staticmethod
     def parse(value_string):
         """
         Parse value_string like '1m' and returns value in seconds.
