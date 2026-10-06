@@ -17,7 +17,7 @@ import tempfile
 import threading
 import time
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from rate_limit import backend as rate_limit_backend
 from rate_limit.rate_limit import OpenStackRateLimitMiddleware
@@ -190,7 +190,7 @@ class TestMiddlewareCredentialReload(unittest.TestCase):
 
         with patch('pyredis.Pool') as mock_pool_cls:
             mock_pool_cls.return_value = MagicMock()
-            app = OpenStackRateLimitMiddleware(
+            OpenStackRateLimitMiddleware(
                 app=fake.FakeApp(),
                 config_file=SWIFTCONFIGPATH,
                 backend='redis',
@@ -249,7 +249,7 @@ class TestMiddlewareCredentialReload(unittest.TestCase):
         self._secret_file = self._write_file('pass')
         before = threading.active_count()
 
-        app = OpenStackRateLimitMiddleware(
+        OpenStackRateLimitMiddleware(
             app=fake.FakeApp(),
             config_file=SWIFTCONFIGPATH,
             backend_secret_file=self._secret_file,
