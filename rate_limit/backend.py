@@ -18,6 +18,7 @@ monkeypatch_crc_ccitt()
 import eventlet
 import hashlib
 import pyredis
+import threading
 import time
 
 from distutils.version import StrictVersion
@@ -64,7 +65,7 @@ class RedisBackend(Backend):
     """Stable Redis backend for storing rate limits."""
 
     def __init__(self, host, port, password, rate_limit_response, max_sleep_time_seconds, log_sleep_time_seconds,
-                 logger=log.Logger(__name__), **kwargs):
+                 logger=log.Logger(__name__), username=None, **kwargs):
         super(RedisBackend, self).__init__(
             host=host,
             port=port,
@@ -77,7 +78,6 @@ class RedisBackend(Backend):
         )
         self.__host = host
         self.__port = port
-        self.__password = password
         self.__max_sleep_time_seconds = max_sleep_time_seconds
         self.__log_sleep_time_seconds = log_sleep_time_seconds
         self.__rate_limit_response = rate_limit_response
@@ -85,16 +85,9 @@ class RedisBackend(Backend):
         self.__max_connections = kwargs.get('max_connections', 100)
         # Default to nanosecond accuracy.
         self.__clock_accuracy = int(kwargs.get('clock_accuracy', 1e6))
+        self.__pool_lock = threading.Lock()
 
-        self.__redis = pyredis.Pool(
-            host=host,
-            port=port,
-            password=password,
-            conn_timeout=self.__timeout,
-            read_timeout=self.__timeout,
-            pool_size=self.__max_connections,
-            encoding='utf-8',
-        )
+        self.__redis = self.__make_pool(host=host, port=port, password=password, username=username)
         script_name = "redis_sliding_window.lua"
         script = common.load_lua_script(script_name)
         if not script:
@@ -104,6 +97,40 @@ class RedisBackend(Backend):
             return
         self.__rate_limit_script = script
         self.__rate_limit_script_sha = hashlib.sha1(script.encode('utf-8')).hexdigest()
+
+    def __make_pool(self, host, port, password, username=None):
+        kwargs = dict(
+            host=host,
+            port=port,
+            password=password,
+            conn_timeout=self.__timeout,
+            read_timeout=self.__timeout,
+            pool_size=self.__max_connections,
+            encoding='utf-8',
+        )
+        if username is not None:
+            kwargs['username'] = username
+        return pyredis.Pool(**kwargs)
+
+    def reload(self, password, username=None):
+        """Swap the connection pool using new credentials without dropping in-flight requests."""
+        new_pool = self.__make_pool(
+            host=self.__host,
+            port=self.__port,
+            password=password,
+            username=username,
+        )
+        with self.__pool_lock:
+            old_pool = self.__redis
+            self.__redis = new_pool
+        try:
+            old_pool.close()
+        except Exception:
+            pass
+
+    def _current_pool(self):
+        with self.__pool_lock:
+            return self.__redis
 
     def is_available(self):
         """Check whether the redis is available and supported."""
@@ -122,7 +149,7 @@ class RedisBackend(Backend):
         try:
             # Invoke get to test redis connection.
             # Will return None or one of the following exceptions.
-            self.__redis.execute('GET', '')
+            self._current_pool().execute('GET', '')
         except pyredis.PyRedisError:
             return False
         return True
@@ -134,7 +161,7 @@ class RedisBackend(Backend):
 
         :return: bool
         """
-        info_result = self.__redis.execute('INFO')
+        info_result = self._current_pool().execute('INFO')
         version = utils.parse_info(info_result).get('redis_version', None)
         if not version:
             return False
@@ -164,7 +191,7 @@ class RedisBackend(Backend):
     def __check_rate_limit_script(self, script_sha):
         script_exist = False
         try:
-            script_exist = bool(self.__redis.script_exists(script_sha)[0])
+            script_exist = bool(self._current_pool().script_exists(script_sha)[0])
         except pyredis.PyRedisError as e:
             self.logger.debug(
                 "Error during checking script existence: {0}".format(str(e))
@@ -188,8 +215,9 @@ class RedisBackend(Backend):
 
         # Execute command
         try:
+            pool = self._current_pool()
             if script_exist:
-                result = self.__redis.evalsha(
+                result = pool.evalsha(
                     self.__rate_limit_script_sha,
                     7,
                     key,
@@ -201,7 +229,7 @@ class RedisBackend(Backend):
                     self.__clock_accuracy,
                 )
             else:
-                result = self.__redis.eval(
+                result = pool.eval(
                     self.__rate_limit_script,
                     7,
                     key,
