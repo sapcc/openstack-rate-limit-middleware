@@ -13,6 +13,8 @@
 # under the License.
 
 import os
+import threading
+import time
 
 from datadog.dogstatsd import DogStatsd
 
@@ -75,10 +77,22 @@ class OpenStackRateLimitMiddleware(object):
         if self.backend_secret_file:
             try:
                 with open(self.backend_secret_file, 'r') as f:
-                    self.backend_password = f.read()
+                    self.backend_password = f.read().strip()
             except IOError as e:
                 self.logger.error(
                     f"error loading backend secret from file '{self.backend_secret_file}': {e}"
+                )
+
+        # Load username from configuration file (for ACL-based auth)
+        self.backend_username = None
+        self.backend_username_file = self.__conf.get('backend_username_file')
+        if self.backend_username_file:
+            try:
+                with open(self.backend_username_file, 'r') as f:
+                    self.backend_username = f.read().strip()
+            except IOError as e:
+                self.logger.error(
+                    f"error loading backend username from file '{self.backend_username_file}': {e}"
                 )
 
         self.logger.debug(
@@ -144,10 +158,11 @@ class OpenStackRateLimitMiddleware(object):
         # Accuracy of the request timestamps used. Defaults to nanosecond accuracy.
         clock_accuracy = int(1 / units.Units.parse(self.__conf.get('clock_accuracy', '1ns')))
 
-        self.backend = rate_limit_backend.RedisBackend(
+        self.redis_backend = rate_limit_backend.RedisBackend(
             host=self.backend_host,
             port=self.backend_port,
             password=self.backend_password,
+            username=self.backend_username,
             rate_limit_response=self.ratelimit_response,
             max_sleep_time_seconds=max_sleep_time_seconds,
             log_sleep_time_seconds=log_sleep_time_seconds,
@@ -155,11 +170,15 @@ class OpenStackRateLimitMiddleware(object):
             max_connections=backend_max_connections,
             clock_accuracy=clock_accuracy,
         )
+        self.backend = self.redis_backend
 
         # Test if the backend is ready.
         is_available, msg = self.backend.is_available()
         if not is_available:
             self.logger.warning("rate limit not possible. the backend is not available: {0}".format(msg))
+
+        if self.backend_secret_file or self.backend_username_file:
+            self._start_credential_watcher()
 
         # Provider for rate limits. Defaults to configuration file.
         # Also supports Limes.
@@ -239,6 +258,57 @@ class OpenStackRateLimitMiddleware(object):
 
         except Exception as e:
             self.logger.debug("failed to setup limes rate limit provider: {0}".format(str(e)))
+
+    def _reload_credentials(self):
+        """Re-read credential files and swap the backend pool if contents changed."""
+        password = None
+        if self.backend_secret_file:
+            try:
+                with open(self.backend_secret_file, 'r') as f:
+                    password = f.read().strip()
+            except IOError as e:
+                self.logger.error(f"error reloading backend secret: {e}")
+                return
+
+        username = None
+        if self.backend_username_file:
+            try:
+                with open(self.backend_username_file, 'r') as f:
+                    username = f.read().strip()
+            except IOError as e:
+                self.logger.error(f"error reloading backend username: {e}")
+                return
+
+        self.redis_backend.reload(password=password, username=username)
+        self.logger.info("backend credentials reloaded")
+
+    def _start_credential_watcher(self):
+        interval = float(self.__conf.get('backend_secret_reload_interval', 30))
+        watched = [p for p in (self.backend_secret_file, self.backend_username_file) if p]
+        mtimes = {}
+        for path in watched:
+            try:
+                mtimes[path] = os.stat(path).st_mtime
+            except OSError:
+                mtimes[path] = None
+
+        def _watch():
+            while True:
+                time.sleep(interval)
+                changed = False
+                for path in watched:
+                    try:
+                        mtime = os.stat(path).st_mtime
+                    except OSError:
+                        mtime = None
+                    if mtime != mtimes.get(path):
+                        mtimes[path] = mtime
+                        changed = True
+                if changed:
+                    self._reload_credentials()
+
+        t = threading.Thread(target=_watch, daemon=True)
+        t.start()
 
     @classmethod
     def factory(cls, global_config, **local_config):
