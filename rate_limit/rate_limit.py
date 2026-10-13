@@ -195,7 +195,6 @@ class OpenStackRateLimitMiddleware(object):
 
     def _setup_response(self):
         """Set up configurable RateLimitExceededResponse and BlacklistResponse."""
-        """Set up configurable RateLimitExceededResponse and BlacklistResponse."""
         # Default responses.
         ratelimit_response = response.RateLimitExceededResponse()
         blacklist_response = response.BlacklistResponse()
