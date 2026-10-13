@@ -19,6 +19,7 @@ from datadog.dogstatsd import DogStatsd
 from . import backend as rate_limit_backend
 from . import common
 from . import errors
+from . import k8s_secret_watcher
 from . import provider
 from . import response
 from . import units
@@ -69,17 +70,13 @@ class OpenStackRateLimitMiddleware(object):
         self.backend_host = self.__conf.get('backend_host', '127.0.0.1')
         self.backend_port = common.to_int(self.__conf.get('backend_port'), 6379)
 
-        # Load password from configuration file
-        self.backend_password = None
-        self.backend_secret_file = self.__conf.get('backend_secret_file')
-        if self.backend_secret_file:
-            try:
-                with open(self.backend_secret_file, 'r') as f:
-                    self.backend_password = f.read()
-            except IOError as e:
-                self.logger.error(
-                    f"error loading backend secret from file '{self.backend_secret_file}': {e}"
-                )
+        self.backend_password = None  # credentials are loaded by K8sSecretWatcher at startup
+        self._backend_secret_name = self.__conf.get('backend_secret_name')
+        self._backend_secret_namespace = self.__conf.get(
+            'backend_secret_namespace', self._detect_namespace()
+        )
+        self._backend_secret_password_key = self.__conf.get('backend_secret_password_key', 'redis_password')
+        self._backend_secret_username_key = self.__conf.get('backend_secret_username_key')
 
         self.logger.debug(
             "using backend '{0}' on '{1}:{2}'".format('redis', self.backend_host, self.backend_port)
@@ -156,7 +153,17 @@ class OpenStackRateLimitMiddleware(object):
             clock_accuracy=clock_accuracy,
         )
 
-        # Test if the backend is ready.
+        if self._backend_secret_name:
+            watcher = k8s_secret_watcher.K8sSecretWatcher(
+                backend=self.backend,
+                secret_name=self._backend_secret_name,
+                namespace=self._backend_secret_namespace,
+                password_key=self._backend_secret_password_key,
+                username_key=self._backend_secret_username_key,
+            )
+            watcher.start()
+
+        # Test if the backend is ready (pool is populated by watcher.start() above if configured).
         is_available, msg = self.backend.is_available()
         if not is_available:
             self.logger.warning("rate limit not possible. the backend is not available: {0}".format(msg))
@@ -177,7 +184,17 @@ class OpenStackRateLimitMiddleware(object):
 
         self.logger.info("OpenStack Rate Limit Middleware ready for requests.")
 
+    @staticmethod
+    def _detect_namespace():
+        """Return the pod's own namespace from the service-account volume."""
+        try:
+            with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', 'r') as f:
+                return f.read().strip()
+        except IOError:
+            return 'default'
+
     def _setup_response(self):
+        """Set up configurable RateLimitExceededResponse and BlacklistResponse."""
         """Set up configurable RateLimitExceededResponse and BlacklistResponse."""
         # Default responses.
         ratelimit_response = response.RateLimitExceededResponse()
