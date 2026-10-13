@@ -42,7 +42,7 @@ class K8sSecretWatcher:
         self._logger = log.Logger(__name__)
 
     def start(self):
-        """Synchronously load credentials from the secret, then start background watch."""
+        """Load credentials from the secret, then start a background watch thread."""
         kubernetes.config.load_incluster_config()
         v1 = kubernetes.client.CoreV1Api()
         secret = v1.read_namespaced_secret(self._secret_name, self._namespace)
