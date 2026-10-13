@@ -27,6 +27,9 @@ class TestRateLimitAlgorithm(unittest.TestCase):
                                     max_sleep_time_seconds=max_sleep_time_seconds,
                                     log_sleep_time_seconds=0, )
 
+        # Initialize the connection pool explicitly
+        self.backend.reload(password=None)
+
         if not self.backend.is_available()[0]:
             raise RuntimeError(f"Redis backend {host}:{port} is not available")
 
