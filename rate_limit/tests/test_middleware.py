@@ -38,6 +38,8 @@ class TestOpenStackRateLimitMiddleware(unittest.TestCase):
             config_file=SWIFTCONFIGPATH,
             max_sleep_time_seconds=20
         )
+        # Initialize the backend pool for testing
+        self.app.backend.reload(self.app.backend_password)
         self.is_setup = True
 
     def test_is_scope_whitelisted(self):

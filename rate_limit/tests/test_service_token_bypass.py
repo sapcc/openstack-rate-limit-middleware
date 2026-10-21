@@ -34,6 +34,8 @@ class TestServiceTokenBypassHelper(unittest.TestCase):
             max_sleep_time_seconds=20,
             bypass_service_token=True,
         )
+        # Initialize the backend pool for testing
+        cls.app.backend.reload(cls.app.backend_password)
 
     def test_valid_service_token_returns_true(self):
         environ = {
@@ -88,12 +90,15 @@ class TestServiceTokenBypassIntegration(unittest.TestCase):
     """Tests for the `_rate_limit()` short-circuit."""
 
     def _new_app(self, **extra_conf):
-        return OpenStackRateLimitMiddleware(
+        app = OpenStackRateLimitMiddleware(
             app=fake.FakeApp(),
             config_file=SWIFTCONFIGPATH,
             max_sleep_time_seconds=20,
             **extra_conf,
         )
+        # Initialize the backend pool for testing
+        app.backend.reload(app.backend_password)
+        return app
 
     def test_bypass_disabled_by_default(self):
         app = self._new_app()
