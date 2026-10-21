@@ -174,5 +174,83 @@ class TestRedisBackendNonBlocking(unittest.TestCase):
         self.assertFalse(ok)
 
 
+class TestReloadCloseRace(unittest.TestCase):
+    """Comment #2 from PR #39: the close-during-inflight race.
+
+    reload() swaps the pool pointer under the lock, then closes the old pool
+    outside the lock. A concurrent request may hold a reference to old_pool and
+    still be executing against it when close() is called.
+
+    These tests show the race is benign: PyRedisError from a closed pool is
+    already caught by the existing error path, so the request returns None
+    (pass-through) instead of crashing or leaking an exception.
+    """
+
+    def test_in_flight_request_returns_none_when_pool_closed_mid_execution(self):
+        """Request paused inside script_exists; reload() closes old_pool while
+        it waits. On resume the pool raises PyRedisError — must return None."""
+        b = _make_backend()
+
+        reached_pool = threading.Event()
+        allow_proceed = threading.Event()
+
+        old_pool = MagicMock()
+
+        def blocking_script_exists(*args):
+            reached_pool.set()
+            allow_proceed.wait(timeout=5)
+            raise pyredis.PyRedisError('connection closed')
+
+        old_pool.script_exists.side_effect = blocking_script_exists
+
+        with patch('pyredis.Pool', return_value=old_pool):
+            b.reload(password='old')
+
+        results = {}
+
+        def run_rate_limit():
+            results['value'] = b.rate_limit(
+                scope='proj', action='create',
+                target_type_uri='compute/servers', max_rate_string='10r/m',
+            )
+
+        t = threading.Thread(target=run_rate_limit)
+        t.start()
+
+        reached_pool.wait(timeout=5)
+
+        # Swap the pool while the request holds a reference to old_pool.
+        new_pool = MagicMock()
+        with patch('pyredis.Pool', return_value=new_pool):
+            b.reload(password='new')
+
+        old_pool.close.assert_called_once()
+
+        # Let the paused request finish against the now-closed old_pool.
+        allow_proceed.set()
+        t.join(timeout=5)
+
+        self.assertIsNone(results.get('value'),
+                          "PyRedisError from closed pool must be caught as pass-through")
+
+    def test_close_exception_does_not_propagate_from_reload(self):
+        """If old_pool.close() raises, reload() must still complete and the
+        new pool must be live."""
+        b = _make_backend()
+
+        old_pool = MagicMock()
+        old_pool.close.side_effect = Exception('underlying socket already gone')
+
+        with patch('pyredis.Pool', return_value=old_pool):
+            b.reload(password='old')
+
+        new_pool = MagicMock()
+        with patch('pyredis.Pool', return_value=new_pool):
+            b.reload(password='new')  # must not raise
+
+        self.assertIs(b.pool, new_pool,
+                      "new pool must be live even if old_pool.close() raised")
+
+
 if __name__ == '__main__':
     unittest.main()
